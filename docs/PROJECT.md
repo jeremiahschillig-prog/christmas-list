@@ -199,3 +199,26 @@ Also found on the first real run: new Supabase projects no longer grant `service
 access to new tables, so every read failed with "permission denied". The schema now
 grants it explicitly. And `package.json` now says `"type": "module"`, which silences
 Node's warning about guessing the module type of `lib/pin.ts`.
+
+**Step 3, sign-in (Nov 20).**
+- `/sign-in` shows the four owners as cards and everyone else under "Family". Pick a
+  name, then type a PIN on the keypad (`components/PinPad.tsx`), which submits by
+  itself on the fourth digit.
+- A wrong PIN shakes the dots and says how many tries are left.
+- `lib/lockout.ts` (tested): every 5 misses in a row lock that name. The first lock
+  is 5 minutes, and each one after doubles, up to a day. The lock is checked *before*
+  the PIN is looked at, so a locked name can't be guessed at all.
+- A starter PIN leads to `/welcome`: keep it, or choose your own (entered twice).
+- `lib/session.ts`: a 400-day httpOnly cookie, whose token is stored as an HMAC keyed
+  with SESSION_SECRET. Sign out revokes the session.
+- All of it is server functions in `app/actions/auth.ts`. The home page is still a
+  placeholder, now with "Welcome back, <name>" and a sign-out link.
+
+Checked in the preview at 375 px: sign-in, a wrong PIN, the welcome screen, choosing a
+PIN (including a mismatch), staying signed in after a reload, the cookie not being
+visible to page scripts, sign out, and the lockout and its expiry. Three bugs were
+found and fixed along the way:
+- Digits pressed faster than React re-rendered overwrote each other, so the pad
+  never reached four. The digits now also live in a ref.
+- "Those didn't match" vanished with the pad that would have shown it.
+- Four filled dots stayed under the "Too many tries" message.

@@ -1,9 +1,16 @@
-// Step 1 placeholder: proves the fonts and palette render the way the mockup does.
-// Replaced by the real sign-in and Home screens in steps 3 and 4.
+import { redirect } from 'next/navigation'
+import { currentPerson } from '@/lib/session'
+import { signOut } from '@/app/actions/auth'
+
+// Step 3 placeholder: proves sign-in works. The real Home screen (a card per
+// list with open counts) comes in step 4.
 
 const OWNERS = ['Jeremy', 'Jessica', 'Austin', 'Ellie']
 
-export default function Home() {
+export default async function Home() {
+  const me = await currentPerson()
+  if (!me) redirect('/sign-in')
+
   return (
     <main className="mx-auto w-full max-w-md px-5 pt-14 pb-10">
       <p className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-rose-text">
@@ -11,7 +18,7 @@ export default function Home() {
         Christmas 2026
       </p>
       <h1 className="mt-1.5 font-serif text-[38px] leading-tight text-plum">The Family List</h1>
-      <p className="mt-1 text-[15px] text-muted">Being built — check back soon.</p>
+      <p className="mt-1 text-[15px] text-muted">Welcome back, {me.name}</p>
 
       <div className="mt-7 grid grid-cols-2 gap-3">
         {OWNERS.map((name) => (
@@ -26,6 +33,12 @@ export default function Home() {
           </div>
         ))}
       </div>
+
+      <form action={signOut} className="mt-10 text-center">
+        <button type="submit" className="min-h-11 text-[15px] font-semibold text-plum underline underline-offset-4">
+          Sign out
+        </button>
+      </form>
     </main>
   )
 }

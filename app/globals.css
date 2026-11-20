@@ -26,3 +26,10 @@ html, body {
 
 button { -webkit-tap-highlight-color: transparent; }
 button, .no-select { user-select: none; -webkit-user-select: none; }
+
+/* Wrong PIN: the dots shake, like the iPhone's own passcode screen. */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-10px); }
+  40%, 80% { transform: translateX(10px); }
+}
