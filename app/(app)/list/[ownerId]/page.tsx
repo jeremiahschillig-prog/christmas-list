@@ -13,5 +13,5 @@ export default async function ListPage(props: PageProps<'/list/[ownerId]'>) {
 
   // listFor applies the surprise rule: on your own list it never fetches purchases.
   const view = await listFor(me.id, ownerId)
-  return <ListScreen ownerName={name} view={view} />
+  return <ListScreen ownerName={name} view={view} viewerId={me.id} />
 }

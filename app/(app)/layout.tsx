@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import TabBar from '@/components/TabBar'
+import { unreadGiftNotes } from '@/lib/mygifts'
 import { currentPerson } from '@/lib/session'
 
 // Every signed-in screen: the page, then the floating tab bar. Sign-in and
@@ -11,7 +12,7 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
   return (
     <>
       <div className="pb-28">{children}</div>
-      <TabBar isOwner={me.is_owner} />
+      <TabBar isOwner={me.is_owner} giftBadge={await unreadGiftNotes(me.id)} />
     </>
   )
 }

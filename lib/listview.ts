@@ -1,3 +1,5 @@
+import { summarize, type SplitInfo, type SplitMember } from './splits'
+
 // What one person is allowed to see of one list.
 //
 // THE SURPRISE RULE LIVES HERE. When the viewer is the list's owner, the claims
@@ -28,20 +30,22 @@ export type ItemRow = {
 }
 
 export type ClaimRow = { item_id: string; buyer_id: string }
-export type SplitRow = { item_id: string; ordered_at: string | null; member_ids: string[] }
+export type SplitRow = { item_id: string; ordered_at: string | null; purchaser_id: string; members: SplitMember[] }
 
 /**
  * open      — anyone can tap "I got this". `boughtCount` > 0 only on "more than one
  *             is fine" items; `mine` = the viewer already bought one of those.
- * mine      — the viewer bought it ("You got this", with Undo).
- * taken     — someone else bought it.
- * together  — a group gift is being put together (details come in step 6).
+ * mine      — the viewer bought it ("You got this", with Undo), or is in a group
+ *             gift that has been ordered (`split` set; no Undo).
+ * taken     — someone else bought it, or a group gift the viewer isn't in was ordered.
+ * together  — a group gift is being put together. Anyone but the owner can see
+ *             who's in and for how much, so they can join.
  */
 export type Status =
   | { kind: 'open'; boughtCount: number; mine: boolean }
-  | { kind: 'mine' }
+  | { kind: 'mine'; split?: SplitInfo }
   | { kind: 'taken' }
-  | { kind: 'together'; member: boolean }
+  | { kind: 'together'; member: boolean; split: SplitInfo }
 
 export type BuyerItem = ItemRow & { status: Status }
 
@@ -74,9 +78,10 @@ export function statusOf(item: ItemRow, viewerId: string, claims: ClaimRow[], sp
   if (mine.some((c) => c.buyer_id === viewerId)) return { kind: 'mine' }
   if (mine.length > 0) return { kind: 'taken' }
   if (split) {
-    const member = split.member_ids.includes(viewerId)
-    if (split.ordered_at) return member ? { kind: 'mine' } : { kind: 'taken' }
-    return { kind: 'together', member }
+    const member = split.members.some((m) => m.id === viewerId)
+    const info = summarize(item.price, split.members, split.purchaser_id, Boolean(split.ordered_at))
+    if (split.ordered_at) return member ? { kind: 'mine', split: info } : { kind: 'taken' }
+    return { kind: 'together', member, split: info }
   }
   return { kind: 'open', boughtCount: 0, mine: false }
 }

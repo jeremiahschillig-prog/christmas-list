@@ -5,10 +5,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ItemSheet from '@/components/ItemSheet'
 import { unclaimItem } from '@/app/actions/items'
-import { detailLine } from '@/lib/format'
+import { detailLine, formatPrice } from '@/lib/format'
 import type { BuyerItem, ItemRow, ListView } from '@/lib/listview'
 
-type Props = { ownerName: string; view: ListView }
+type Props = { ownerName: string; view: ListView; viewerId: string }
 
 function label(item: ItemRow): string | null {
   const parts = [item.is_top_pick ? 'Top pick' : null, item.is_cash ? 'Cash' : null].filter(Boolean)
@@ -29,7 +29,7 @@ function Thumb({ item }: { item: ItemRow }) {
   )
 }
 
-export default function ListScreen({ ownerName, view }: Props) {
+export default function ListScreen({ ownerName, view, viewerId }: Props) {
   const router = useRouter()
   const [openId, setOpenId] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -38,7 +38,9 @@ export default function ListScreen({ ownerName, view }: Props) {
   const selected = items.find((i) => i.id === openId) ?? null
 
   const open = view.kind === 'buyer' ? view.items.filter((i) => i.status.kind === 'open') : []
-  const done = view.kind === 'buyer' ? view.items.filter((i) => i.status.kind !== 'open') : []
+  // Group gifts still forming get their own section: anyone can still join them.
+  const forming = view.kind === 'buyer' ? view.items.filter((i) => i.status.kind === 'together') : []
+  const done = view.kind === 'buyer' ? view.items.filter((i) => i.status.kind === 'mine' || i.status.kind === 'taken') : []
   const needsReview = view.kind === 'buyer' && view.needsReview
 
   async function undo(id: string) {
@@ -151,6 +153,56 @@ export default function ListScreen({ ownerName, view }: Props) {
         </div>
       )}
 
+      {forming.length > 0 && (
+        <>
+          <p className="mt-7 flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-rose-text">
+            Going in together
+            <span className="h-px flex-1 bg-line" />
+          </p>
+          <div className="mt-3 flex flex-col gap-2.5">
+            {forming.map((item) => {
+              if (item.status.kind !== 'together') return null
+              const { split, member } = item.status
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setOpenId(item.id)}
+                  className="flex flex-col gap-2.5 rounded-[18px] border border-line bg-white px-[18px] py-4 text-left"
+                >
+                  <span className="flex items-center gap-3.5">
+                    <Thumb item={item} />
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="font-serif text-[20px] leading-snug text-plum">{item.name}</span>
+                      <span className="text-[13px] text-muted">
+                        {split.members.length} {split.members.length === 1 ? 'person' : 'people'} in ·{' '}
+                        {split.remaining === null
+                          ? `${formatPrice(split.pledged)} so far`
+                          : split.remaining === 0
+                            ? 'fully covered'
+                            : `${formatPrice(split.remaining)} to go`}
+                      </span>
+                    </span>
+                    <span
+                      className={`shrink-0 rounded-full px-3.5 py-2.5 text-[14px] font-semibold ${
+                        member ? 'bg-soft text-got' : 'border border-plum text-plum'
+                      }`}
+                    >
+                      {member ? "You're in" : 'Join in'}
+                    </span>
+                  </span>
+                  {split.percent !== null && (
+                    <span className="h-1.5 rounded-full bg-soft">
+                      <span className="block h-1.5 rounded-full bg-plum" style={{ width: `${split.percent}%` }} />
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+
       {done.length > 0 && (
         <>
           <p className="mt-7 flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
@@ -159,7 +211,8 @@ export default function ListScreen({ ownerName, view }: Props) {
           </p>
           <div className="mt-3 flex flex-col gap-2">
             {done.map((item) => {
-              const mine = item.status.kind === 'mine'
+              const mine = item.status.kind === 'mine' || (item.status.kind === 'together' && item.status.member)
+              const viaGroup = (item.status.kind === 'mine' && Boolean(item.status.split)) || item.status.kind === 'together'
               const together = item.status.kind === 'together'
               return (
                 <div key={item.id} className="flex items-center gap-3 rounded-2xl bg-soft px-[18px] py-3">
@@ -175,10 +228,10 @@ export default function ListScreen({ ownerName, view }: Props) {
                   <button type="button" onClick={() => setOpenId(item.id)} className="flex min-w-0 flex-1 flex-col text-left">
                     <span className={`text-[16px] ${mine ? 'font-medium text-ink' : 'text-muted'}`}>{item.name}</span>
                     <span className={`text-[13px] ${mine ? 'font-semibold text-got' : 'text-muted'}`}>
-                      {mine ? 'You got this' : together ? 'Going in together' : 'Taken'}
+                      {mine && viaGroup ? "You're going in together" : mine ? 'You got this' : together ? 'Going in together' : 'Taken'}
                     </span>
                   </button>
-                  {mine && (
+                  {mine && !viaGroup && (
                     <button
                       type="button"
                       onClick={() => undo(item.id)}
@@ -201,6 +254,7 @@ export default function ListScreen({ ownerName, view }: Props) {
           ownerName={ownerName}
           isOwn={isOwn}
           needsReview={needsReview}
+          viewerId={viewerId}
           onClose={() => setOpenId(null)}
         />
       )}

@@ -40,15 +40,22 @@ export default async function Home() {
         ))}
       </div>
 
-      <div className="mt-5 flex flex-col gap-1 rounded-[20px] bg-plum p-5 text-paper">
-        <span className="text-xs uppercase tracking-[0.16em] text-rose-light">Your shopping</span>
-        <span className="font-serif text-[22px]">
-          {myGiftCount === 0 ? 'Nothing picked yet' : `${myGiftCount} ${myGiftCount === 1 ? 'gift' : 'gifts'} picked`}
+      <Link href="/my-gifts" className="mt-5 flex items-center gap-4 rounded-[20px] bg-plum p-5 text-paper">
+        <span className="flex flex-1 flex-col gap-1">
+          <span className="text-xs uppercase tracking-[0.16em] text-rose-light">Your shopping</span>
+          <span className="font-serif text-[22px]">
+            {myGiftCount === 0 ? 'Nothing picked yet' : `${myGiftCount} ${myGiftCount === 1 ? 'gift' : 'gifts'} picked`}
+          </span>
+          <span className="text-[13px] text-paper/80">
+            {myGiftCount === 0 ? 'Tap a name to see their list' : 'See your checklist in My Gifts'}
+          </span>
         </span>
-        <span className="text-[13px] text-paper/80">
-          {myGiftCount === 0 ? 'Tap a name to see their list' : 'Your full checklist is coming soon'}
+        <span className="flex size-11 items-center justify-center rounded-full bg-paper/15" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
         </span>
-      </div>
+      </Link>
 
       <form action={signOut} className="mt-10 text-center">
         <button type="submit" className="min-h-11 text-[15px] font-semibold text-plum underline underline-offset-4">

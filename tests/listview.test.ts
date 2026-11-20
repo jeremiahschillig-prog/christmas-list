@@ -78,13 +78,33 @@ test('"more than one is fine" stays open and counts purchases', () => {
 })
 
 test('group gifts: in progress, then taken once ordered', () => {
-  const tv = item()
-  const forming: SplitRow[] = [{ item_id: tv.id, ordered_at: null, member_ids: [GRANDPA] }]
-  assert.deepEqual(statusOf(tv, GRANDMA, [], forming), { kind: 'together', member: false })
-  assert.deepEqual(statusOf(tv, GRANDPA, [], forming), { kind: 'together', member: true })
+  const tv = item({ price: 249 })
+  const members = [{ id: GRANDPA, name: 'Grandpa', amount: 100, joined_at: '2026-11-20T00:00:00Z' }]
+  const forming: SplitRow[] = [{ item_id: tv.id, ordered_at: null, purchaser_id: GRANDPA, members }]
+
+  const seen = statusOf(tv, GRANDMA, [], forming)
+  assert.equal(seen.kind, 'together')
+  if (seen.kind === 'together') {
+    assert.equal(seen.member, false)
+    assert.equal(seen.split.remaining, 149)
+    assert.equal(seen.split.purchaserName, 'Grandpa')
+  }
+  const own = statusOf(tv, GRANDPA, [], forming)
+  assert.equal(own.kind === 'together' && own.member, true)
+
   const ordered: SplitRow[] = [{ ...forming[0], ordered_at: '2026-12-01T00:00:00Z' }]
   assert.deepEqual(statusOf(tv, GRANDMA, [], ordered), { kind: 'taken' })
-  assert.deepEqual(statusOf(tv, GRANDPA, [], ordered), { kind: 'mine' })
+  const mine = statusOf(tv, GRANDPA, [], ordered)
+  assert.equal(mine.kind === 'mine' && mine.split?.ordered, true)
+})
+
+test("an owner's own list never sees a group gift either", async () => {
+  const tv = item({ price: 249 })
+  const members = [{ id: GRANDPA, name: 'Grandpa', amount: 100, joined_at: '2026-11-20T00:00:00Z' }]
+  const { deps, calls } = fakeDeps([tv], [], [{ item_id: tv.id, ordered_at: null, purchaser_id: GRANDPA, members }])
+  const json = JSON.stringify(await loadList(ELLIE, ELLIE, deps))
+  assert.deepEqual(calls, ['items'])
+  for (const word of ['together', 'Grandpa', 'pledged', 'split']) assert.ok(!json.includes(word), `leaked "${word}"`)
 })
 
 test('open items come first with top picks leading; taken ones sink', async () => {

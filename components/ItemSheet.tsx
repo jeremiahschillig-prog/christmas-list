@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { claimItem, unclaimItem } from '@/app/actions/items'
+import GroupGift from '@/components/GroupGift'
 import { formatPrice, linkDomain } from '@/lib/format'
 import type { BuyerItem, ItemRow } from '@/lib/listview'
 
@@ -15,10 +16,11 @@ type Props = {
   /** The viewer's own list: details only, no buttons, no status. */
   isOwn: boolean
   needsReview: boolean
+  viewerId: string
   onClose: () => void
 }
 
-export default function ItemSheet({ item, ownerName, isOwn, needsReview, onClose }: Props) {
+export default function ItemSheet({ item, ownerName, isOwn, needsReview, viewerId, onClose }: Props) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -55,7 +57,8 @@ export default function ItemSheet({ item, ownerName, isOwn, needsReview, onClose
   ].filter((f): f is { label: string; value: string } => f !== null)
 
   const canClaim = !isOwn && !needsReview && status?.kind === 'open' && !status.mine
-  const iHaveIt = status?.kind === 'mine' || (status?.kind === 'open' && status.mine)
+  // Bought on your own (Undo works). A group gift you're in shows its own panel instead.
+  const iHaveIt = (status?.kind === 'mine' && !status.split) || (status?.kind === 'open' && status.mine)
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
@@ -179,8 +182,8 @@ export default function ItemSheet({ item, ownerName, isOwn, needsReview, onClose
             {status?.kind === 'taken' && (
               <p className="text-center text-[15px] text-muted">Someone already got this one.</p>
             )}
-            {status?.kind === 'together' && (
-              <p className="text-center text-[15px] text-muted">A group gift is being put together for this one.</p>
+            {status && !item.multi_ok && (
+              <GroupGift itemId={item.id} viewerId={viewerId} status={status} needsReview={needsReview} />
             )}
             {needsReview && status?.kind === 'open' && !status.mine && (
               <p className="text-center text-[15px] text-muted">

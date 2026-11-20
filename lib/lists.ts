@@ -19,16 +19,23 @@ async function claimsFor(itemIds: string[]): Promise<ClaimRow[]> {
   return data ?? []
 }
 
-async function splitsFor(itemIds: string[]): Promise<SplitRow[]> {
+export async function splitsFor(itemIds: string[]): Promise<SplitRow[]> {
   if (!itemIds.length) return []
   const { data } = await db()
     .from('splits')
-    .select('item_id, ordered_at, split_members(person_id)')
+    .select('item_id, ordered_at, purchaser_id, split_members(person_id, amount, joined_at, people(name))')
     .in('item_id', itemIds)
+  type Member = { person_id: string; amount: number | string; joined_at: string; people: { name: string } | null }
   return (data ?? []).map((s) => ({
     item_id: s.item_id,
     ordered_at: s.ordered_at,
-    member_ids: (s.split_members as { person_id: string }[]).map((m) => m.person_id),
+    purchaser_id: s.purchaser_id,
+    members: (s.split_members as unknown as Member[]).map((m) => ({
+      id: m.person_id,
+      name: m.people?.name ?? '',
+      amount: Number(m.amount),
+      joined_at: m.joined_at,
+    })),
   }))
 }
 
@@ -86,7 +93,9 @@ export async function homeFor(viewerId: string): Promise<{ year: number; cards: 
     }
   })
 
-  const myGiftCount = claims.filter((c) => c.buyer_id === viewerId).length
+  const myGiftCount =
+    claims.filter((c) => c.buyer_id === viewerId).length +
+    splits.filter((s) => s.members.some((m) => m.id === viewerId)).length
   return { year, cards, myGiftCount }
 }
 

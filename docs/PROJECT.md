@@ -294,3 +294,47 @@ Found:
 - Moving folders while `next dev` runs fails on Windows (the folder is locked). Stop
   the preview first, and clear `.next/dev` if the build then complains about the
   old paths.
+
+**Step 6, My Gifts and going in together (Nov 20).**
+- **Going in together** (`app/actions/splits.ts`, `components/GroupGift.tsx`):
+  - "Go in together with others instead" on an open item starts a group gift. The
+    starter is the first member and the purchaser.
+  - Others see a "Going in together" section on the list (its own section, between
+    open and taken, since they can still join), with a progress bar against the
+    price and each member's name and share. They join with their own amount and can
+    change their share.
+  - Any member can tap "I'll order it instead". The purchaser taps "I ordered it" (or
+    "Not ordered yet after all"), and once it's ordered, non-members see "Taken".
+  - Leaving: when the purchaser leaves, ordering passes to whoever joined earliest,
+    and when the last person leaves, the split is deleted and the item reopens
+    (`lib/splits.ts`, tested).
+  - Notes go to the other members only: joined, left, and who's ordering now.
+  - Not offered on "more than one is fine" items, which anyone can just buy.
+- **My Gifts** (`/my-gifts`, `lib/mygifts.ts`):
+  - Every gift you're buying, alone or together, grouped "For Ellie", "For Austin"…
+  - Each gift shows its status: "You got this" with Undo, or "Going in together ·
+    your share $75 · Grandpa is ordering it".
+  - A gift changed after you picked it shows the changes. One the owner removed is
+    crossed out with "Removed by Ellie".
+  - An Updates list shows the notes, marked New until seen; opening the tab marks
+    them read, and the My Gifts tab shows an unread badge.
+  - Only notes about gifts you're in appear here. An admin's alerts about items they
+    didn't buy wait for the Admin tab (step 7).
+- **Home:** the "Your shopping" card now links to My Gifts and counts group gifts too.
+- **The surprise rule:** split data is only fetched on the buyer path, after
+  `loadList` has already returned for owners. A new test confirms an owner's view
+  carries no "together", member names or amounts.
+
+Checked in the preview at 375 px with both test buyers, on Austin's headphones:
+- Grandpa started a $100 group gift.
+- Grandma saw "Going in together · 1 person in · $149 to go", joined with $75 ($74 to
+  go), took over ordering, and marked it ordered. The list then read 1 taken.
+- Grandpa got "joined with $75" and "will order it now" notes. Austin got nothing.
+- With two alerts inserted for Grandma (a color change and a removal), My Gifts showed
+  the tab badge "2 new", both updates, the change on the hoodie and the crossed-out
+  shorts, and the badge cleared after viewing.
+- Grandma un-ordered and left: ordering went back to Grandpa and the join form
+  returned.
+
+All step 6 test data was removed afterwards and checked: no splits, members or
+notifications remain, and the shorts are restored.

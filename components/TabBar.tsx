@@ -21,11 +21,19 @@ const MY_LIST_ICON = (
   </svg>
 )
 
-export default function TabBar({ isOwner }: { isOwner: boolean }) {
+const GIFTS_ICON = (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="8" width="18" height="13" rx="2" />
+    <path d="M12 8v13M3 12h18M12 8c-2-4-6-4-6-1.5S9 8 12 8zM12 8c2-4 6-4 6-1.5S15 8 12 8z" />
+  </svg>
+)
+
+export default function TabBar({ isOwner, giftBadge }: { isOwner: boolean; giftBadge: number }) {
   const path = usePathname()
   const tabs = [
-    { href: '/', label: 'Lists', icon: LISTS_ICON, active: path === '/' || path.startsWith('/list/') },
-    ...(isOwner ? [{ href: '/my-list', label: 'My List', icon: MY_LIST_ICON, active: path.startsWith('/my-list') }] : []),
+    { href: '/', label: 'Lists', icon: LISTS_ICON, active: path === '/' || path.startsWith('/list/'), badge: 0 },
+    { href: '/my-gifts', label: 'My Gifts', icon: GIFTS_ICON, active: path.startsWith('/my-gifts'), badge: giftBadge },
+    ...(isOwner ? [{ href: '/my-list', label: 'My List', icon: MY_LIST_ICON, active: path.startsWith('/my-list'), badge: 0 }] : []),
   ]
 
   return (
@@ -38,12 +46,18 @@ export default function TabBar({ isOwner }: { isOwner: boolean }) {
           key={t.href}
           href={t.href}
           aria-current={t.active ? 'page' : undefined}
-          className={`flex min-h-11 items-center gap-2 rounded-full px-[18px] py-2.5 text-[14px] ${
+          aria-label={t.badge ? `${t.label}, ${t.badge} new` : undefined}
+          className={`relative flex min-h-11 items-center gap-1.5 rounded-full px-3.5 py-2.5 text-[14px] ${
             t.active ? 'bg-soft font-semibold text-plum' : 'font-medium text-muted'
           }`}
         >
           {t.icon}
           {t.label}
+          {t.badge > 0 && (
+            <span className="absolute top-0.5 left-6 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-text px-1 text-[11px] font-bold text-white">
+              {t.badge}
+            </span>
+          )}
         </Link>
       ))}
     </nav>
