@@ -222,3 +222,32 @@ found and fixed along the way:
   never reached four. The digits now also live in a ref.
 - "Those didn't match" vanished with the pad that would have shown it.
 - Four filled dots stayed under the "Too many tries" message.
+
+**Step 4, Home, lists and "I got this" (Nov 20).**
+- **The surprise rule** is `loadList` in `lib/listview.ts`. When the viewer owns the
+  list, it returns before claims or splits are fetched, and the items it returns
+  have no status field at all. Tests prove this by counting database calls and by
+  searching the owner's view for "taken", "bought" and the buyer's name. `homeFor`
+  only fetches purchases for *other people's* items, and your own card shows
+  "Your list · N ideas" rather than an open count.
+- **Checked live as well.** Test Grandpa was briefly made an owner with one item
+  Test Grandma had bought. Neither his list page nor the raw data the app downloads
+  for it contained "Taken", a status, "bought" or "Test Grandma". The change was undone
+  afterwards, and that was checked too.
+- **Statuses:** open, mine, taken, and together (a group gift, filled in at step 6).
+  "More than one is fine" items stay open and count purchases: "You got one · 1
+  bought so far".
+- **"I got this" and Undo** (`app/actions/items.ts`): every refusal, including an
+  owner trying to claim their own item, gets the same message, so a refusal never
+  hints at whether something was bought. If two people tap the same item at the same
+  moment, both claims can land. That's acceptable for a family; the admin view will
+  show both names.
+- **Sample items:** `npm run db:sample` adds 12 (records their ids in
+  `scripts/sample-items.local.json`), and `npm run db:sample -- --remove` removes
+  exactly those.
+- **Found in testing:** the item sheet rendered completely unstyled in the dev
+  preview, while the production build was fine. Tailwind looks for class names
+  relative to the folder the dev server starts in, and the preview starts it from
+  the parent folder. `globals.css` now names the project folder with
+  `source("../")`. Also, bulk inserts send a missing column as null rather than its
+  default, so the sample rows spell out every field.

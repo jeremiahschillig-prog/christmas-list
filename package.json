@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "node --import ./tests/ts-hook.mjs --test \"tests/*.test.ts\"",
     "db:check": "node --env-file=.env.local --import ./tests/ts-hook.mjs scripts/check-db.ts",
-    "db:seed": "node --env-file=.env.local --import ./tests/ts-hook.mjs scripts/seed.ts"
+    "db:seed": "node --env-file=.env.local --import ./tests/ts-hook.mjs scripts/seed.ts",
+    "db:sample": "node --env-file=.env.local --import ./tests/ts-hook.mjs scripts/sample-items.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

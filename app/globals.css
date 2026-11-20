@@ -1,4 +1,8 @@
-@import "tailwindcss";
+/* source("../") = scan this project's folder for class names, whatever folder the
+ * dev server was started from. The preview starts it from the parent folder, and
+ * Tailwind then missed a newly added component's classes entirely: the item sheet
+ * rendered unstyled in dev while the production build was fine (Nov 20). */
+@import "tailwindcss" source("../");
 
 /* Plum & Rose Gold — the palette Jeremy picked (Nov 20). Values and what each is
  * for are in docs/PROJECT.md. Use these as Tailwind classes: bg-plum, text-rose-text… */
