@@ -73,7 +73,8 @@ export default function ListScreen({ ownerName, view }: Props) {
 
       {isOwn && (
         <p className="mt-3 rounded-2xl bg-soft px-4 py-3 text-[14px] leading-relaxed text-ink">
-          You won&apos;t see what&apos;s been bought here, so it stays a surprise. Adding and editing ideas is coming next.
+          You won&apos;t see what&apos;s been bought here, so it stays a surprise. To add or change ideas, use{' '}
+          <Link href="/my-list" className="font-semibold text-plum underline underline-offset-4">My List</Link>.
         </p>
       )}
 

@@ -154,7 +154,7 @@ directly.
 
 ## Open
 
-- Nothing blocking. Ellie's Slides link is needed at step 9.
+- Nothing blocking. Ellie's Slides deck for step 9: https://docs.google.com/presentation/d/1aTeFo0wPfZfQlFHDfHd8yydjRdGFsSxm43639Fav9gA/edit
 
 ---
 
@@ -251,3 +251,46 @@ found and fixed along the way:
   the parent folder. `globals.css` now names the project folder with
   `source("../")`. Also, bulk inserts send a missing column as null rather than its
   default, so the sample rows spell out every field.
+
+**Step 5, My List (Nov 20).**
+- **Signed-in screens** now live in the `app/(app)/` route group, whose layout adds
+  the floating tab bar (`components/TabBar.tsx`). Lists for everyone, plus My List
+  for owners; My Gifts and Admin arrive in steps 6 and 7.
+- **`/my-list`** lets you add, edit and remove your ideas (`components/ItemEditor.tsx`).
+  Jeremy and Jessica get Mine / Austin / Ellie chips (`?for=<id>`). `lib/permissions.ts`
+  (tested) says parents can edit the kids' lists but not each other's. The edit
+  screen never fetches purchases.
+- **Photos:**
+  - Saving with a link fetches the store page, reads JSON-LD or og:image
+    (`lib/linkpreview.ts`, tested), and copies the image into the public
+    `item-photos` Supabase bucket (`npm run db:storage` creates it). A pasted link
+    also suggests a name.
+  - The server refuses private addresses at every redirect hop, after DNS lookup
+    too, with a 6 s timeout and size caps.
+  - The owner can replace a photo; it's shrunk in the browser to 1600 px JPEG
+    (`lib/shrink.ts`) and marked `photo_source = 'upload'`, so a later link change
+    won't overwrite it. Replaced photos are deleted from storage.
+- **Change alerts:** editing name, size, color, link or "what it's for" on a bought
+  item, or removing it, writes notifications to its buyers and the admins, never to
+  the owner or the person who made the change (`changeRecipients`, tested). Removing
+  an idea always keeps the row (`deleted_at`), and the editor gets the same plain
+  confirmation either way.
+
+Checked in the preview at 375 px, with Test Grandpa temporarily made an owner and
+admin and every change undone and checked afterwards:
+- Add an idea with a link: the name filled in from the page.
+- Edit a link: a photo was pulled and copied into the bucket.
+- Replace a photo: a 2400 px image was stored as a 1600 px, 19 KB JPEG, and the old
+  file was deleted.
+- On Ellie's list, a color change on the bought hoodie alerted Test Grandma, Jeremy
+  and Jessica with "Gray → Navy", and nobody else. Removing the bought shorts did
+  the same, and the row was kept.
+- A plain buyer gets no My List tab, and `/my-list` sends them home.
+
+Found:
+- Lululemon answers automated requests with 403, and REI serves its page but
+  returns 503 for the image. Those stores fall back to "no photo, add your own",
+  which is the case the replace button exists for.
+- Moving folders while `next dev` runs fails on Windows (the folder is locked). Stop
+  the preview first, and clear `.next/dev` if the build then complains about the
+  old paths.
