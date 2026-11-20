@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { hashPin, isValidPin, starterPin, verifyPin } from '../lib/pin'
+import { hashPin, isChoosablePin, isValidPin, starterPin, verifyPin } from '../lib/pin'
 
 test('a hashed PIN verifies, a wrong one does not', async () => {
   const stored = await hashPin('4821')
@@ -25,6 +25,10 @@ test('a malformed stored value never verifies', async () => {
   assert.equal(await verifyPin('1234', 'plain$1234'), false)
 })
 
-test('starter PINs are always 4 digits', () => {
-  for (let i = 0; i < 500; i++) assert.equal(isValidPin(starterPin()), true)
+test('everyone starts on 1111, and nobody can choose it as their own', () => {
+  assert.equal(starterPin(), '1111')
+  assert.equal(isValidPin(starterPin()), true)
+  assert.equal(isChoosablePin('1111'), false)
+  assert.equal(isChoosablePin('4821'), true)
+  assert.equal(isChoosablePin('12'), false)
 })

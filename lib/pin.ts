@@ -38,7 +38,20 @@ export async function verifyPin(pin: string, stored: string): Promise<boolean> {
   return expected.length === actual.length && timingSafeEqual(expected, actual)
 }
 
-/** A random 4-digit starter PIN, for an admin adding or resetting someone. */
+/**
+ * Everyone's first PIN, and the PIN after an admin reset (decided Nov 20). One
+ * shared starter means the invitation can be a single email to the whole
+ * family. It's only safe because it works exactly once: signing in with it goes
+ * straight to "Choose your PIN" (no keep option, no way around it), and it can't
+ * be chosen as anyone's own PIN.
+ */
+export const STARTER_PIN = '1111'
+
 export function starterPin(): string {
-  return String(randomBytes(2).readUInt16BE(0) % 10000).padStart(4, '0')
+  return STARTER_PIN
+}
+
+/** A PIN someone may choose for themselves: 4 digits, and not the shared starter. */
+export function isChoosablePin(pin: string): boolean {
+  return isValidPin(pin) && pin !== STARTER_PIN
 }

@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { ATTEMPTS_TO_LOAD, lockState } from '@/lib/lockout'
-import { hashPin, isValidPin, verifyPin } from '@/lib/pin'
+import { hashPin, isChoosablePin, isValidPin, STARTER_PIN, verifyPin } from '@/lib/pin'
 import { currentPerson, endSession, startSession } from '@/lib/session'
 
 export type SignInResult =
@@ -50,23 +50,20 @@ export async function signIn(personId: string, pin: string): Promise<SignInResul
   return { ok: true, next: person.pin_is_starter ? '/welcome' : '/' }
 }
 
-/** First sign-in: keep the starter PIN an admin gave out. */
-export async function keepStarterPin(): Promise<void> {
+/**
+ * First sign-in (required: everyone starts on the shared 1111): choose your own
+ * PIN. There is deliberately no "keep the starter PIN" option any more.
+ */
+export async function choosePin(pin: string): Promise<{ ok: boolean; error?: string }> {
   const me = await currentPerson()
   if (!me) redirect('/sign-in')
-  await db().from('people').update({ pin_is_starter: false }).eq('id', me.id)
-}
-
-/** First sign-in (and later, from settings): choose your own PIN. */
-export async function choosePin(pin: string): Promise<{ ok: boolean }> {
-  const me = await currentPerson()
-  if (!me) redirect('/sign-in')
-  if (!isValidPin(pin)) return { ok: false }
+  if (!isValidPin(pin)) return { ok: false, error: 'Your PIN needs to be 4 digits.' }
+  if (!isChoosablePin(pin)) return { ok: false, error: `Everyone starts with ${STARTER_PIN}, so pick something else.` }
   const { error } = await db()
     .from('people')
     .update({ pin_hash: await hashPin(pin), pin_is_starter: false })
     .eq('id', me.id)
-  return { ok: !error }
+  return error ? { ok: false, error: 'Something went wrong. Please try again.' } : { ok: true }
 }
 
 export async function signOut(): Promise<void> {

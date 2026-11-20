@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PinPad from '@/components/PinPad'
-import { choosePin, keepStarterPin } from '@/app/actions/auth'
+import { choosePin, signOut } from '@/app/actions/auth'
 
 type Stage = 'ask' | 'enter' | 'confirm' | 'done'
 
@@ -45,6 +45,7 @@ export default function Welcome({ name }: { name: string }) {
               subtitle="Pick 4 digits you'll remember"
               initialError={mismatch}
               onComplete={async (pin) => {
+                if (pin === '1111') return 'Everyone starts with 1111, so pick something else.'
                 setMismatch(null)
                 setFirst(pin)
                 setStage('confirm')
@@ -63,8 +64,8 @@ export default function Welcome({ name }: { name: string }) {
                   setStage('enter')
                   return null
                 }
-                const { ok } = await choosePin(pin)
-                if (!ok) return 'Something went wrong. Please try again.'
+                const result = await choosePin(pin)
+                if (!result.ok) return result.error ?? 'Something went wrong. Please try again.'
                 setStage('done')
                 return null
               }}
@@ -104,10 +105,10 @@ export default function Welcome({ name }: { name: string }) {
       </p>
       <h1 className="mt-2 font-serif text-[38px] leading-tight text-plum">Hi, {name}</h1>
       <p className="mt-3 text-[17px] leading-relaxed text-ink">
-        You signed in with the PIN you were given. You can keep it, or choose your own.
+        Everyone starts with 1111, so the first step is choosing a PIN of your own. That way nobody else can sign in as you.
       </p>
       <p className="mt-3 text-[15px] leading-relaxed text-muted">
-        This phone will remember you, so you won&apos;t need it again here.
+        This phone will remember you, so you&apos;ll only need it on a new phone.
       </p>
 
       <div className="mt-10 flex flex-col gap-3">
@@ -116,19 +117,18 @@ export default function Welcome({ name }: { name: string }) {
           onClick={() => setStage('enter')}
           className="h-[58px] rounded-full bg-plum text-[17px] font-semibold text-paper shadow-[0_10px_24px_rgba(78,42,79,0.25)]"
         >
-          Choose my own PIN
+          Choose my PIN
         </button>
         <button
           type="button"
           disabled={busy}
           onClick={async () => {
             setBusy(true)
-            await keepStarterPin()
-            goHome()
+            await signOut()
           }}
-          className="h-[58px] rounded-full border border-plum text-[17px] font-semibold text-plum disabled:opacity-50"
+          className="min-h-11 text-[15px] font-semibold text-plum underline underline-offset-4 disabled:opacity-50"
         >
-          Keep the one I was given
+          Not {name}? Go back
         </button>
       </div>
     </main>

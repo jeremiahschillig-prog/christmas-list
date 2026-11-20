@@ -10,6 +10,9 @@ import { currentPerson } from '@/lib/session'
 export default async function AppLayout({ children }: LayoutProps<'/'>) {
   const me = await currentPerson()
   if (!me) redirect('/sign-in')
+  // Still on the shared starter PIN (1111): nothing else until they choose their
+  // own, or anyone could sign in as them.
+  if (me.pin_is_starter) redirect('/welcome')
   const [giftBadge, adminBadge] = await Promise.all([unreadGiftNotes(me.id), unreadAdminNotes(me)])
   return (
     <>

@@ -3,6 +3,7 @@
 **Owner:** Jeremy (product owner, makes all decisions)
 **Started:** Nov 20, 2026
 **Mockups:** https://claude.ai/artifact/KKhxFT46gKUriKn9K8s3mB
+**Live at:** https://christmas-list-alpha.vercel.app (Vercel, deploys on every push to `main`)
 
 This file records decisions with the reasons attached, the same way the meal planner's
 `docs/PROJECT.md` does. The original brief is `christmas-list-build-plan.md` and
@@ -422,3 +423,56 @@ Checked in the preview at 375 px, twice, with Test Grandpa temporarily an admin:
 
 Small fix found: a past year said "Nothing bought yet", and now says "Nothing was
 bought."
+
+**Step 9, Ellie's list (Nov 20).**
+- **Sample items removed** (`npm run db:sample -- --remove`); the two test purchases
+  went with them.
+- **Reading her deck:** "Ellie's Christmas List 2026" was read with the Google Slides
+  connector. Her store links are attached to the *pictures*, not the text (35
+  links), and her slides run most-wanted first.
+- **The draft** (`scripts/ellie-list.local.json`, git-ignored) has 46 items, one per
+  link, as the spec says for store-only requests:
+  - Product names come from the slides or the store pages.
+  - Sizes come from the slides, checked against the size selected in each Shopify
+    link (all matched). The Art on Wheels hoodie's link supplied the missing Black /
+    S. Jeremy confirmed S for the Amazon tank tops from the links.
+  - "GRAGAE" was meant to be "Garage".
+  - Top picks are what she marked with "!": the monkey, the Hotty Hot shorts, Alo,
+    and the Scuffers, PacSun and Wings hoodies. The monkey and the cheese wheel
+    stay, as written.
+- **Loading:** `npm run db:import -- Ellie <draft> <photos>` (`scripts/import-list.ts`)
+  loads a draft in order, with her slide pictures copied in as photos. They're marked
+  `upload` so a link change never replaces them. `-- --remove Ellie` undoes it
+  exactly.
+  - 43 of 46 items have photos. The TV and Six Flags slides have no picture, and the
+    Scuba half-zip shares the shorts' slide picture.
+  - Two full-size PNGs were over the 5 MB limit, so the script now asks Google for
+    1200 px.
+  - The two Lululemon items link to lululemon.com's homepage, because that's all her
+    slide links to.
+- **Checked** at 375 px as a buyer: 46 open, top picks first, all 43 photos load, no
+  sideways scroll, and the item sheet shows the photo.
+
+**Step 9, live on Vercel (Nov 20).** Jeremy imported the repo into Vercel with the
+three settings from `.env.local`. Checked at 375 px on https://christmas-list-alpha.vercel.app:
+- Sign-in works, and the session cookie isn't readable by page scripts.
+- Ellie's 46 ideas show with all 43 photos and no sideways scroll.
+- "I got this" and Undo both save, so the server key works from Vercel. The test
+  claim was undone, and 0 purchases remain.
+
+**One shared starter PIN (Nov 20, Jeremy's decision).**
+- Everyone starts on **1111**: new relatives, people whose PIN was reset, and (as of
+  today) all four owners. That lets the invitation be a single email.
+- To keep a shared PIN safe, it works only once. Signing in with it goes to "Choose
+  your PIN" with no keep option, every signed-in page redirects there while
+  `pin_is_starter` is true, and 1111 can't be chosen as anyone's own PIN
+  (`isChoosablePin`, tested). The welcome screen has "Not <name>? Go back" for
+  anyone who tapped the wrong name.
+- The four owners should sign in once before the link goes out. Until then anyone
+  could claim their names, including a kid signing in as a parent and seeing
+  purchases in Admin.
+- Checked in the preview: a 1111 user is redirected from /, /my-gifts, /list, /admin
+  and /my-list. Choosing 1111 is refused. After choosing a real PIN, 1111 no longer
+  signs that person in.
+- Test Grandma and Test Grandpa removed (no purchases). The people are now Jeremy,
+  Jessica, Austin and Ellie.

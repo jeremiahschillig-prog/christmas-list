@@ -228,11 +228,11 @@ export default function AdminScreen({ lists, notes, people, meId, season, viewin
           {pinShown && (
             <div className="mt-5 flex flex-col items-center gap-2 rounded-[20px] bg-plum px-5 py-5 text-center text-paper" role="status">
               <span className="text-[14px] text-paper/85">
-                {pinShown.fresh ? `${pinShown.name} is added. Their starter PIN is` : `${pinShown.name}'s new starter PIN is`}
+                {pinShown.fresh ? `${pinShown.name} is added. They sign in the first time with` : `${pinShown.name} is reset. They sign in next time with`}
               </span>
               <span className="font-serif text-[44px] tracking-[0.25em]">{pinShown.pin}</span>
               <span className="text-[13px] leading-snug text-paper/85">
-                Tell them in person or by text. It won&apos;t be shown again. They can choose their own when they sign in.
+                Then they choose their own PIN straight away, so 1111 only works once for them.
               </span>
               <button type="button" onClick={() => setPinShown(null)} className="mt-1 min-h-11 text-[14px] font-semibold text-rose-light underline underline-offset-4">
                 Done
@@ -334,7 +334,7 @@ export default function AdminScreen({ lists, notes, people, meId, season, viewin
             ))}
           </ul>
           <p className="mt-3 text-[13px] leading-relaxed text-muted">
-            Resetting a PIN signs that person out on every phone and clears any wait from wrong guesses.
+            Resetting a PIN puts that person back on 1111, signs them out on every phone, and clears any wait from wrong guesses.
           </p>
         </>
       )}
