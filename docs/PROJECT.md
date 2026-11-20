@@ -338,3 +338,43 @@ Checked in the preview at 375 px with both test buyers, on Austin's headphones:
 
 All step 6 test data was removed afterwards and checked: no splits, members or
 notifications remain, and the shorts are restored.
+
+**Step 7, Admin (Nov 20).** `/admin`, for Jeremy and Jessica only. Anyone else is
+redirected home, and every admin action re-checks `is_admin`.
+- **Purchases** (`lib/admin.ts`):
+  - Every list except your own (`adminVisibleLists`, tested). Your own list is never
+    queried.
+  - Each list shows "N bought · N open", then each bought item with who bought it:
+    several names on a "more than one" item, or "Together: Grandma $100, Grandpa $75
+    · Grandma will order it / ordered it".
+  - Items removed after being bought stay listed, tagged "removed from list", since
+    they still need wrapping. Unbought items sit under a collapsed "N not bought
+    yet".
+  - "Changed after buying" lists the change and removal alerts with who bought each
+    item. They're marked New until seen, and the Admin tab shows an unread badge.
+- **People & PINs** (`app/actions/admin.ts`):
+  - **Add a family member** (name only) creates a buyer with a random starter PIN,
+    shown once in large digits to pass on.
+  - **Reset PIN** gives a new starter PIN, signs that person out on every phone and
+    clears their wrong-guess count. It isn't offered on your own row.
+  - **Remove** works for relatives only, never list owners. It confirms first,
+    saying how many gifts they'd marked; those go back to open, and any group gift
+    they were ordering passes to the next member.
+- **Tab bar:** now up to four tabs (Lists, My Gifts, My List, Admin), each an icon
+  over a small label so all four fit at iPhone width.
+
+Checked in the preview at 375 px, with Test Grandpa temporarily an owner and admin,
+plus a group gift on Austin's headphones, an item on Grandpa's *own* list bought by
+Grandma, and one alert:
+- Admin showed Jeremy, Jessica, Austin and Ellie with the right buyers, the group
+  gift, and the alert with "Bought by Test Grandma". Grandpa's own list and that
+  item appeared nowhere, in the page or its raw data. The badge cleared after
+  viewing.
+- Adding "Test Aunt" showed her PIN. Resetting Test Grandma left her with a starter
+  PIN, no live sessions and no wrong guesses. Removing Test Aunt (who had no gifts)
+  worked after the confirmation.
+- As a non-admin, Test Grandma had no Admin tab, and `/admin` sent her home.
+
+Afterwards everything was undone and checked: Grandma's PIN is back to the value in
+`scripts/starter-pins.local.json`, Grandpa is a plain buyer again, and the test item,
+split and alerts are gone.

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import TabBar from '@/components/TabBar'
+import { unreadAdminNotes } from '@/lib/admin'
 import { unreadGiftNotes } from '@/lib/mygifts'
 import { currentPerson } from '@/lib/session'
 
@@ -9,10 +10,11 @@ import { currentPerson } from '@/lib/session'
 export default async function AppLayout({ children }: LayoutProps<'/'>) {
   const me = await currentPerson()
   if (!me) redirect('/sign-in')
+  const [giftBadge, adminBadge] = await Promise.all([unreadGiftNotes(me.id), unreadAdminNotes(me)])
   return (
     <>
       <div className="pb-28">{children}</div>
-      <TabBar isOwner={me.is_owner} giftBadge={await unreadGiftNotes(me.id)} />
+      <TabBar isOwner={me.is_owner} isAdmin={me.is_admin} giftBadge={giftBadge} adminBadge={adminBadge} />
     </>
   )
 }
