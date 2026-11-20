@@ -1,12 +1,23 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { addPerson, markAdminNotesRead, removePerson, resetPin, type PinResult } from '@/app/actions/admin'
+import { startSeason, undoSeason, type SeasonResult } from '@/app/actions/season'
 import { formatPrice } from '@/lib/format'
 import type { AdminItem, AdminList, AdminNote, AdminPerson } from '@/lib/admin'
+import type { SeasonInfo } from '@/lib/season'
 
-type Props = { lists: AdminList[]; notes: AdminNote[]; people: AdminPerson[]; meId: string }
+type Props = {
+  lists: AdminList[]
+  notes: AdminNote[]
+  people: AdminPerson[]
+  meId: string
+  season: SeasonInfo
+  /** The Christmas whose purchases are shown; earlier than season.year = history. */
+  viewingYear: number
+}
 
 const FIELD_NAMES: Record<string, string> = { name: 'Name', size: 'Size', color: 'Color', link: 'Link', cash_for: "What it's for" }
 
@@ -29,9 +40,24 @@ function lastSeen(iso: string | null): string {
   return `Last here ${new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' })}`
 }
 
-export default function AdminScreen({ lists, notes, people, meId }: Props) {
+export default function AdminScreen({ lists, notes, people, meId, season, viewingYear }: Props) {
   const router = useRouter()
-  const [tab, setTab] = useState<'purchases' | 'people'>('purchases')
+  const [tab, setTab] = useState<'purchases' | 'people' | 'season'>('purchases')
+  const [seasonConfirm, setSeasonConfirm] = useState<null | 'start' | 'undo'>(null)
+  const [seasonMessage, setSeasonMessage] = useState<string | null>(null)
+  const history = viewingYear !== season.year
+
+  async function runSeason(action: () => Promise<SeasonResult>) {
+    setBusy('season')
+    setError(null)
+    const result = await action()
+    setBusy(null)
+    setSeasonConfirm(null)
+    if (!result.ok) return setError(result.error)
+    setSeasonMessage(result.message)
+    router.replace('/admin')
+    router.refresh()
+  }
   const [newIds] = useState(() => new Set(notes.filter((n) => n.unread).map((n) => n.id)))
   const [pinShown, setPinShown] = useState<{ name: string; pin: string; fresh: boolean } | null>(null)
   const [newName, setNewName] = useState('')
@@ -76,8 +102,8 @@ export default function AdminScreen({ lists, notes, people, meId }: Props) {
         For labeling gifts while you wrap. Your own list is never shown here.
       </p>
 
-      <div className="mt-5 grid grid-cols-2 gap-1 rounded-full bg-soft p-1" role="tablist">
-        {(['purchases', 'people'] as const).map((t) => (
+      <div className="mt-5 grid grid-cols-3 gap-1 rounded-full bg-soft p-1" role="tablist">
+        {(['purchases', 'people', 'season'] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -86,7 +112,7 @@ export default function AdminScreen({ lists, notes, people, meId }: Props) {
             onClick={() => setTab(t)}
             className={`min-h-11 rounded-full text-[15px] font-semibold ${tab === t ? 'bg-white text-plum shadow-sm' : 'text-muted'}`}
           >
-            {t === 'purchases' ? 'Purchases' : 'People & PINs'}
+            {t === 'purchases' ? 'Purchases' : t === 'people' ? 'People' : 'Season'}
           </button>
         ))}
       </div>
@@ -99,7 +125,28 @@ export default function AdminScreen({ lists, notes, people, meId }: Props) {
 
       {tab === 'purchases' && (
         <>
-          {notes.length > 0 && (
+          {season.years.length > 1 && (
+            <div className="mt-5 flex flex-wrap gap-2" aria-label="Which Christmas">
+              {[...season.years].reverse().map((y) => (
+                <Link
+                  key={y}
+                  href={y === season.year ? '/admin' : `/admin?year=${y}`}
+                  aria-current={y === viewingYear ? 'page' : undefined}
+                  className={`min-h-11 content-center rounded-full px-4 text-[14px] font-semibold ${
+                    y === viewingYear ? 'bg-plum text-paper' : 'border border-line bg-white text-plum'
+                  }`}
+                >
+                  {y}
+                </Link>
+              ))}
+            </div>
+          )}
+          {history && (
+            <p className="mt-4 rounded-2xl bg-soft px-4 py-3 text-[14px] leading-relaxed text-ink">
+              Looking back at Christmas {viewingYear}. Ideas nobody bought moved on to {viewingYear + 1}.
+            </p>
+          )}
+          {!history && notes.length > 0 && (
             <section className="mt-6" aria-labelledby="alerts">
               <h2 id="alerts" className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-rose-text">
                 Changed after buying
@@ -137,7 +184,7 @@ export default function AdminScreen({ lists, notes, people, meId }: Props) {
               </h2>
 
               {list.bought.length === 0 ? (
-                <p className="mt-3 rounded-2xl bg-soft px-4 py-3 text-[14px] text-muted">Nothing bought yet.</p>
+                <p className="mt-3 rounded-2xl bg-soft px-4 py-3 text-[14px] text-muted">{history ? 'Nothing was bought.' : 'Nothing bought yet.'}</p>
               ) : (
                 <ul className="mt-3 overflow-hidden rounded-[18px] border border-line bg-white">
                   {list.bought.map((item, i) => (
@@ -290,6 +337,95 @@ export default function AdminScreen({ lists, notes, people, meId }: Props) {
             Resetting a PIN signs that person out on every phone and clears any wait from wrong guesses.
           </p>
         </>
+      )}
+
+      {tab === 'season' && (
+        <section className="mt-6 flex flex-col gap-4" aria-label="Season">
+          {seasonMessage && (
+            <p role="status" className="rounded-2xl border border-rose bg-white px-4 py-3 text-[15px] leading-relaxed text-ink">
+              {seasonMessage}
+            </p>
+          )}
+
+          <div className="rounded-[20px] border border-line bg-white p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-text">This season</p>
+            <p className="mt-1 font-serif text-[30px] text-plum">Christmas {season.year}</p>
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-[20px] bg-soft p-5">
+            <p className="font-serif text-[22px] leading-snug text-plum">Ready for Christmas {season.year + 1}?</p>
+            <p className="text-[14px] leading-relaxed text-ink">Starting next Christmas:</p>
+            <ul className="flex flex-col gap-1.5 text-[14px] leading-relaxed text-ink">
+              <li>
+                · <strong>{season.preview.carry + season.preview.copy}</strong> {season.preview.carry + season.preview.copy === 1 ? 'idea' : 'ideas'} nobody bought come forward, tagged &ldquo;From last year&rdquo;
+                {season.preview.copy > 0 && ` (${season.preview.copy} of them "more than one is fine" ideas starting fresh)`}.
+              </li>
+              <li>
+                · <strong>{season.preview.history}</strong> bought {season.preview.history === 1 ? 'idea stays' : 'ideas stay'} in {season.year}&apos;s history.
+              </li>
+              <li>· Every list with carried-over ideas stays closed to buyers until its owner taps &ldquo;My list is up to date&rdquo;.</li>
+            </ul>
+            {seasonConfirm === 'start' ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-[15px] font-semibold text-ink">
+                  Start Christmas {season.year + 1} now? Everyone will see the new season straight away.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setSeasonConfirm(null)} className="min-h-12 rounded-full border border-plum text-[15px] font-semibold text-plum">
+                    Not yet
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() => runSeason(startSeason)}
+                    className="min-h-12 rounded-full bg-plum text-[15px] font-semibold text-paper disabled:opacity-50"
+                  >
+                    {busy === 'season' ? 'Starting…' : 'Start it'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setSeasonConfirm('start')}
+                className="h-[54px] rounded-full bg-plum text-[16px] font-semibold text-paper"
+              >
+                Start Christmas {season.year + 1}
+              </button>
+            )}
+          </div>
+
+          {season.canUndo && (
+            <div className="flex flex-col gap-2 rounded-[20px] border border-line bg-white p-5">
+              <p className="text-[14px] leading-relaxed text-ink">
+                Started Christmas {season.year} by mistake? Nothing has been added or marked in it yet, so it can be undone.
+              </p>
+              {seasonConfirm === 'undo' ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setSeasonConfirm(null)} className="min-h-12 rounded-full border border-plum text-[15px] font-semibold text-plum">
+                    Keep it
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() => runSeason(undoSeason)}
+                    className="min-h-12 rounded-full bg-rose-text text-[15px] font-semibold text-white disabled:opacity-50"
+                  >
+                    {busy === 'season' ? 'Undoing…' : `Undo ${season.year}`}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setSeasonConfirm('undo')}
+                  className="min-h-11 self-start text-[15px] font-semibold text-rose-text underline underline-offset-4"
+                >
+                  Undo starting {season.year}
+                </button>
+              )}
+            </div>
+          )}
+        </section>
       )}
     </main>
   )

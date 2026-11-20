@@ -11,7 +11,7 @@ import type { BuyerItem, ItemRow, ListView } from '@/lib/listview'
 type Props = { ownerName: string; view: ListView; viewerId: string }
 
 function label(item: ItemRow): string | null {
-  const parts = [item.is_top_pick ? 'Top pick' : null, item.is_cash ? 'Cash' : null].filter(Boolean)
+  const parts = [item.is_top_pick ? 'Top pick' : null, item.is_cash ? 'Cash' : null, item.carried_from_year ? 'From last year' : null].filter(Boolean)
   return parts.length ? parts.join(' · ') : null
 }
 

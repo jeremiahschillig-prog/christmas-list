@@ -33,7 +33,9 @@ export default async function Home() {
               <span className="text-[13px] text-muted">
                 {card.isMe
                   ? `Your list · ${card.itemCount} ${card.itemCount === 1 ? 'idea' : 'ideas'}`
-                  : `${card.openCount} ${card.openCount === 1 ? 'idea' : 'ideas'} open`}
+                  : card.needsReview
+                    ? `Not reviewed for ${year} yet`
+                    : `${card.openCount} ${card.openCount === 1 ? 'idea' : 'ideas'} open`}
               </span>
             </span>
           </Link>

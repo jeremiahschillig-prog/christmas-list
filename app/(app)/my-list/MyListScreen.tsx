@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { markReviewed } from '@/app/actions/season'
 import ItemEditor from '@/components/ItemEditor'
 import { detailLine } from '@/lib/format'
 import type { Editable, ItemForEdit } from '@/lib/mylist'
@@ -12,12 +14,25 @@ type Props = {
   ownerName: string
   isMe: boolean
   items: ItemForEdit[]
+  review: { year: number; needsReview: boolean; carried: boolean }
 }
 
-export default function MyListScreen({ lists, ownerId, ownerName, isMe, items }: Props) {
+export default function MyListScreen({ lists, ownerId, ownerName, isMe, items, review }: Props) {
+  const router = useRouter()
   // null = closed, 'new' = adding, otherwise the id being edited.
   const [editing, setEditing] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [reviewing, setReviewing] = useState(false)
+
+  async function upToDate() {
+    setReviewing(true)
+    const { ok } = await markReviewed(ownerId)
+    setReviewing(false)
+    if (ok) {
+      setToast(`Thanks! ${isMe ? 'Your' : `${ownerName}'s`} list is open for ${review.year} shopping.`)
+      router.refresh()
+    }
+  }
   const current = items.find((i) => i.id === editing) ?? null
 
   useEffect(() => {
@@ -58,6 +73,25 @@ export default function MyListScreen({ lists, ownerId, ownerName, isMe, items }:
           : `You're editing ${ownerName}'s list. Purchases aren't shown here.`}
       </p>
 
+      {review.needsReview && (
+        <div className="mt-4 flex flex-col gap-3 rounded-[20px] border border-rose bg-white p-[18px]" role="region" aria-label="Review this list">
+          <p className="font-serif text-[20px] leading-snug text-plum">Is this list still right for {review.year}?</p>
+          <p className="text-[14px] leading-relaxed text-ink">
+            The ideas marked &ldquo;From last year&rdquo; came forward from {review.year - 1}. Update sizes and links, remove anything
+            {isMe ? " you don't want" : ` ${ownerName} doesn't want`} any more, then tap below. Until then, nobody can mark
+            anything on {isMe ? 'your' : 'this'} list.
+          </p>
+          <button
+            type="button"
+            disabled={reviewing}
+            onClick={upToDate}
+            className="h-[54px] rounded-full bg-plum text-[16px] font-semibold text-paper disabled:opacity-60"
+          >
+            {reviewing ? 'Saving…' : isMe ? 'My list is up to date' : `${ownerName}'s list is up to date`}
+          </button>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={() => setEditing('new')}
@@ -80,7 +114,7 @@ export default function MyListScreen({ lists, ownerId, ownerName, isMe, items }:
       ) : (
         <div className="mt-5 flex flex-col gap-2.5">
           {items.map((item) => {
-            const tag = [item.is_top_pick ? 'Top pick' : null, item.is_cash ? 'Cash' : null].filter(Boolean).join(' · ')
+            const tag = [item.is_top_pick ? 'Top pick' : null, item.is_cash ? 'Cash' : null, item.carried_from_year ? 'From last year' : null].filter(Boolean).join(' · ')
             const sub = item.is_cash ? item.cash_for || 'Cash gift' : detailLine(item)
             return (
               <button

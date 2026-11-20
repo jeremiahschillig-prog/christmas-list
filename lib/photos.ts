@@ -120,11 +120,18 @@ export async function storeUploadedPhoto(file: File): Promise<string> {
   return upload(new Uint8Array(await file.arrayBuffer()), file.type.toLowerCase())
 }
 
-/** Deletes a photo we stored. Store links and anything else are left alone. */
+/**
+ * Deletes a photo we stored, once nothing uses it. Call it AFTER the item that
+ * used it has been updated. A new season copies "more than one is fine" ideas,
+ * and the copy shares last year's photo file, so a file still pointed at by any
+ * item (last year's history included) is kept. Store links are left alone.
+ */
 export async function deleteStoredPhoto(publicUrl: string | null): Promise<void> {
   if (!publicUrl) return
   const marker = `/storage/v1/object/public/${BUCKET}/`
   const at = publicUrl.indexOf(marker)
   if (at === -1) return
+  const { count } = await db().from('items').select('*', { count: 'exact' }).eq('photo_url', publicUrl).limit(0)
+  if ((count ?? 0) > 0) return
   await db().storage.from(BUCKET).remove([publicUrl.slice(at + marker.length)])
 }

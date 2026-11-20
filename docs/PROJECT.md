@@ -378,3 +378,47 @@ Grandma, and one alert:
 Afterwards everything was undone and checked: Grandma's PIN is back to the value in
 `scripts/starter-pins.local.json`, Grandpa is a plain buyer again, and the test item,
 split and alerts are gone.
+
+**Step 8, seasons (Nov 20).**
+- **Starting a season is one database step:** `supabase/02-seasons.sql` (run Nov 20)
+  adds `start_season(new_year)` and `undo_season(year)`, callable only with the
+  server key. Starting either completes entirely or not at all, so a half-moved
+  season can't happen. If 01-schema is ever re-run, re-run 02 after it.
+- **What moves** (`lib/seasons.ts`, tested; the SQL mirrors it, and the TS copy powers
+  the preview):
+  - Ideas nobody bought or went in on move to the new year, with `carried_from_year`
+    set ("From last year").
+  - Bought ideas and group gifts stay in last year's history.
+  - A bought "more than one is fine" idea stays in history *and* gets a fresh copy
+    in the new year (`carried_from_item` points back at it).
+  - Removed ideas stay behind.
+- **Undo** is offered only while nothing has happened in the new season: no new ideas
+  and no purchases. It deletes the copies, moves carried ideas back, and drops the
+  season and its reviews. One known limit: an idea that had already carried once
+  before loses its earlier "carried" year on undo.
+- **Admin › Season:** shows the current season and a preview ("11 ideas come forward ·
+  2 stay in 2026's history"), "Start Christmas 2027" with a confirmation, and "Undo
+  starting 2027" when allowed. Admin › Purchases gets year buttons; a past year is
+  read-only history ("Looking back at Christmas 2026").
+- **Review gate:** a list with carried ideas and no `list_reviews` row for this season
+  shows "Not reviewed for 2027 yet" on its Home card and a notice on the list, and
+  `claimable` refuses "I got this" and group gifts. In My List the owner, or a parent
+  for a kid's list, sees "Is this list still right for 2027?" and "My list is up to
+  date". Carried ideas are tagged "From last year" everywhere.
+- **Photos:** because a copied idea shares its photo file with last year's, a stored
+  photo is now only deleted once no item points at it.
+
+Checked in the preview at 375 px, twice, with Test Grandpa temporarily an admin:
+- **Start:** the preview said 11 forward / 2 stay, and starting did exactly that (10
+  moved, 1 copied).
+- **Review gate:** Home showed "Not reviewed for 2027 yet" on every list. Ellie's list
+  had the notice, the tags and no buttons; the bought hoodie stayed in 2026 and the
+  shorts came forward fresh. Marking her list up to date from My List brought the
+  buttons back.
+- **History:** Admin's 2026 view showed Test Grandma's two purchases.
+- **Undo:** first run from the database, then by tapping the real "Undo 2027" button.
+  Both times every idea and purchase afterwards was identical to a snapshot taken
+  before starting.
+
+Small fix found: a past year said "Nothing bought yet", and now says "Nothing was
+bought."

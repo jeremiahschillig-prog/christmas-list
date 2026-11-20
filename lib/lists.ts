@@ -1,5 +1,6 @@
 import 'server-only'
 import { db } from './db'
+import { needsReview } from './seasons'
 import { isOpen, loadList, statusOf, type ClaimRow, type ItemRow, type ListDeps, type ListView, type SplitRow } from './listview'
 
 // The real database behind lib/listview.ts. The rules are there; this file only fetches.
@@ -63,7 +64,7 @@ export async function listFor(viewerId: string, ownerId: string): Promise<ListVi
   return loadList(viewerId, ownerId, deps(await currentYear()))
 }
 
-export type OwnerCard = { id: string; name: string; isMe: boolean; openCount: number | null; itemCount: number }
+export type OwnerCard = { id: string; name: string; isMe: boolean; openCount: number | null; itemCount: number; needsReview: boolean }
 
 /**
  * The Home screen: a card per list owner. Your own card gets an item count only,
@@ -71,11 +72,13 @@ export type OwnerCard = { id: string; name: string; isMe: boolean; openCount: nu
  */
 export async function homeFor(viewerId: string): Promise<{ year: number; cards: OwnerCard[]; myGiftCount: number }> {
   const year = await currentYear()
-  const [{ data: owners }, { data: items }] = await Promise.all([
+  const [{ data: owners }, { data: items }, { data: reviews }] = await Promise.all([
     db().from('people').select('id, name').eq('is_owner', true).order('sort_order'),
     db().from('items').select(ITEM_COLUMNS).eq('year', year).is('deleted_at', null),
+    db().from('list_reviews').select('owner_id').eq('year', year),
   ])
   const all = (items ?? []) as ItemRow[]
+  const reviewed = new Set((reviews ?? []).map((r) => r.owner_id))
 
   // Purchase data only for OTHER people's items.
   const othersIds = all.filter((i) => i.owner_id !== viewerId).map((i) => i.id)
@@ -90,6 +93,8 @@ export async function homeFor(viewerId: string): Promise<{ year: number; cards: 
       isMe,
       itemCount: theirs.length,
       openCount: isMe ? null : theirs.filter((i) => isOpen(statusOf(i, viewerId, claims, splits))).length,
+      // Shown on other people's cards only; your own review prompt is in My List.
+      needsReview: !isMe && needsReview(theirs, reviewed.has(o.id)),
     }
   })
 

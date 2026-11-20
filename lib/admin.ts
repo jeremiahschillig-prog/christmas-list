@@ -48,7 +48,7 @@ export type AdminPerson = {
 
 type ItemWithOwner = ItemRow & { year: number; deleted_at: string | null }
 
-export async function adminLists(me: Person): Promise<AdminList[]> {
+export async function adminLists(me: Person, year?: number): Promise<AdminList[]> {
   const { data: owners } = await db().from('people').select('id, name').eq('is_owner', true).order('sort_order')
   const visible = adminVisibleLists(me, owners ?? [])
   if (!visible.length) return []
@@ -57,7 +57,7 @@ export async function adminLists(me: Person): Promise<AdminList[]> {
     .from('items')
     .select('id, owner_id, name, link, size, color, notes, price, is_top_pick, is_cash, cash_for, multi_ok, photo_url, sort_order, carried_from_year, created_at, year, deleted_at')
     .in('owner_id', visible.map((o) => o.id))
-    .eq('year', await currentYear())
+    .eq('year', year ?? (await currentYear()))
   const items = ((data ?? []) as ItemWithOwner[]).sort(byPriority)
   const ids = items.map((i) => i.id)
 

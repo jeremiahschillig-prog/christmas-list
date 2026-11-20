@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { assertCanEdit, editableLists, itemsForEdit } from '@/lib/mylist'
+import { reviewState } from '@/lib/season'
 import { currentPerson } from '@/lib/session'
 import MyListScreen from './MyListScreen'
 
@@ -17,6 +18,7 @@ export default async function MyListPage(props: PageProps<'/my-list'>) {
   const chosen = lists.find((l) => l.id === wanted) ?? lists[0]
   await assertCanEdit(me, chosen.id)
 
+  const items = await itemsForEdit(chosen.id)
   return (
     <MyListScreen
       key={chosen.id}
@@ -24,7 +26,8 @@ export default async function MyListPage(props: PageProps<'/my-list'>) {
       ownerId={chosen.id}
       ownerName={chosen.name}
       isMe={chosen.isMe}
-      items={await itemsForEdit(chosen.id)}
+      items={items}
+      review={await reviewState(chosen.id, items)}
     />
   )
 }
