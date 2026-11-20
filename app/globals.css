@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/* Plum & Rose Gold — the palette Jeremy picked (Nov 20). Values and what each is
+ * for are in docs/PROJECT.md. Use these as Tailwind classes: bg-plum, text-rose-text… */
+@theme inline {
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-fraunces);
+
+  --color-plum: #4E2A4F;        /* headings, primary buttons */
+  --color-rose: #C08A7A;        /* hairlines, monogram rings */
+  --color-rose-text: #93594A;   /* small uppercase labels — passes 4.5:1 on paper */
+  --color-rose-light: #EBC3B6;  /* rose on a plum background */
+  --color-paper: #FBF7F6;       /* page */
+  --color-soft: #F3E9E7;        /* taken rows, note blocks */
+  --color-line: #EBDDDA;        /* card borders */
+  --color-ink: #1F2A24;         /* body text */
+  --color-muted: #5C665F;       /* secondary text */
+  --color-got: #2E6B47;         /* "You got this", "1 bought so far" */
+}
+
+html, body {
+  background: var(--color-paper);  /* one look, no surprise dark mode */
+  color: var(--color-ink);
+  overscroll-behavior-y: none;     /* no rubber-band bounce on iPhone */
+}
+
+button { -webkit-tap-highlight-color: transparent; }
+button, .no-select { user-select: none; -webkit-user-select: none; }

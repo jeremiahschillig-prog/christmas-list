@@ -1,0 +1,32 @@
+{
+  "name": "christmas-list",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3200",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "node --import ./tests/ts-hook.mjs --test \"tests/*.test.ts\"",
+    "db:check": "node --env-file=.env.local --import ./tests/ts-hook.mjs scripts/check-db.ts",
+    "db:seed": "node --env-file=.env.local --import ./tests/ts-hook.mjs scripts/seed.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
+    "next": "16.3.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "type": "module"
+}
