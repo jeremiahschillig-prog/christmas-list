@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { isOpen, loadList, statusOf, type ClaimRow, type ItemRow, type ListDeps, type SplitRow } from '../lib/listview'
+import { isOpen, loadList, statusOf, type ClaimRow, type ItemRow, type ListDeps, type ParentNoteRow, type SplitRow } from '../lib/listview'
 
 const ELLIE = 'ellie'
 const GRANDMA = 'grandma'
@@ -18,12 +18,13 @@ function item(over: Partial<ItemRow> = {}): ItemRow {
 }
 
 /** Fake database that records which calls were made. */
-function fakeDeps(items: ItemRow[], claims: ClaimRow[] = [], splits: SplitRow[] = [], reviewed = false) {
+function fakeDeps(items: ItemRow[], claims: ClaimRow[] = [], splits: SplitRow[] = [], reviewed = false, notes: ParentNoteRow[] = []) {
   const calls: string[] = []
   const deps: ListDeps = {
     items: async () => (calls.push('items'), items.map((i) => ({ ...i }))),
     claims: async () => (calls.push('claims'), claims),
     splits: async () => (calls.push('splits'), splits),
+    parentNotes: async () => (calls.push('parentNotes'), notes),
     reviewed: async () => (calls.push('reviewed'), reviewed),
   }
   return { deps, calls }
@@ -54,6 +55,22 @@ test('an owner with a bought item and one with none get identical views', async 
   const bought = await loadList(ELLIE, ELLIE, fakeDeps([a], [{ item_id: 'same', buyer_id: GRANDMA }]).deps)
   const notBought = await loadList(ELLIE, ELLIE, fakeDeps([a]).deps)
   assert.deepEqual(bought, notBought)
+})
+
+test("a parents' note reaches buyers, never the owner", async () => {
+  const pass = item({ name: 'Six Flags pass' })
+  const notes = [{ item_id: pass.id, note: 'We already bought this on sale.' }]
+  const own = fakeDeps([pass], [], [], false, notes)
+  const ownJson = JSON.stringify(await loadList(ELLIE, ELLIE, own.deps))
+  assert.deepEqual(own.calls, ['items'])
+  assert.ok(!ownJson.includes('already bought') && !ownJson.includes('parentNote'))
+
+  const view = await loadList(GRANDMA, ELLIE, fakeDeps([pass], [], [], false, notes).deps)
+  assert.equal(view.kind, 'buyer')
+  if (view.kind === 'buyer') {
+    assert.equal(view.items[0].parentNote, 'We already bought this on sale.')
+    assert.equal(view.items[0].status.kind, 'open')
+  }
 })
 
 // ---------------------------------------------------------------- what buyers see

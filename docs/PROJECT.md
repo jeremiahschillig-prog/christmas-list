@@ -3,7 +3,7 @@
 **Owner:** Jeremy (product owner, makes all decisions)
 **Started:** Nov 20, 2026
 **Mockups:** https://claude.ai/artifact/KKhxFT46gKUriKn9K8s3mB
-**Live at:** https://christmas-list-alpha.vercel.app (Vercel, deploys on every push to `main`)
+**Live at:** https://schillig-gift-list.vercel.app (Vercel, deploys on every push to `main`; the original christmas-list-alpha.vercel.app redirects here)
 
 This file records decisions with the reasons attached, the same way the meal planner's
 `docs/PROJECT.md` does. The original brief is `christmas-list-build-plan.md` and
@@ -69,6 +69,9 @@ for"), "more than one is fine", **photo**.
 - **Photo:** pulled automatically from the link when possible. Some sites (Amazon
   especially) block this, so those items show a tidy placeholder. The owner can replace
   the photo themselves.
+- **Price:** filled in from the link too (store product data), unless one was typed.
+  It's a snapshot from when the link was added, not live: no Black Friday updates.
+  Amazon, Target, Free People and Hollister block this, so those are typed in.
 - **Store-only requests** go on separate lines, each with its own size.
 - **Who can edit:** an owner edits their own list. Jeremy and Jessica can also edit
   Austin's and Ellie's lists.
@@ -77,6 +80,10 @@ for"), "more than one is fine", **photo**.
 
 - "I got this" records the signed-in buyer. Others see "Taken"; the buyer sees "You got
   this" and can undo. "More than one is fine" items stay open and show "N bought so far".
+- **Parents' note:** Jeremy or Jessica can put a red note on an idea on a kid's list,
+  e.g. "Pre-purchased by Jeremy & Jessica. Reach out to them if you'd like to give it."
+  Everyone but the kid sees it (own table, never fetched for the owner). On that item
+  "I got this" reads "I notified Jeremy & Jessica", and going in together is hidden.
 
 ### Going in together (group gifts)
 
@@ -476,3 +483,17 @@ three settings from `.env.local`. Checked at 375 px on https://christmas-list-al
   signs that person in.
 - Test Grandma and Test Grandpa removed (no purchases). The people are now Jeremy,
   Jessica, Austin and Ellie.
+
+### Parents' note and prices (Nov 20)
+
+- Asked for after launch: Jeremy and Jessica already bought Ellie's Six Flags pass on
+  sale, and parents want prices to shop by budget.
+- `supabase/03-parent-notes.sql` (run): `parent_notes` table, same no-public-access
+  model. `loadList` fetches it only for buyers, next to claims; tested.
+- Prices: `parsePreview` reads JSON-LD offers (variant in the link wins, USD only,
+  ProductGroup / PacSun "variants") and the price meta tags. `npm run db:prices --
+  <Name> [--save]` fills blanks on an existing list: 20 of Ellie's 39 linked ideas.
+- Checked in the preview at 375px with a temporary admin and buyer (both removed): note
+  add/save, red note on card and sheet, "I notified…" claim and undo, and a pasted
+  Tweezerman link filling "Classic Lash Curler" and $19. The live Six Flags note is
+  set as Jeremy.

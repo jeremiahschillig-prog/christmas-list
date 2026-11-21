@@ -4,11 +4,21 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ItemSheet from '@/components/ItemSheet'
+import ParentNote from '@/components/ParentNote'
 import { unclaimItem } from '@/app/actions/items'
 import { detailLine, formatPrice } from '@/lib/format'
 import type { BuyerItem, ItemRow, ListView } from '@/lib/listview'
 
-type Props = { ownerName: string; view: ListView; viewerId: string }
+type Props = {
+  ownerName: string
+  view: ListView
+  viewerId: string
+  /** "Jeremy & Jessica": who a parents' note sends buyers to. */
+  parents: string
+  /** Jeremy or Jessica looking at a kid's list: may add a parents' note. */
+  canNote: boolean
+}
+
 
 function label(item: ItemRow): string | null {
   const parts = [item.is_top_pick ? 'Top pick' : null, item.is_cash ? 'Cash' : null, item.carried_from_year ? 'From last year' : null].filter(Boolean)
@@ -29,7 +39,7 @@ function Thumb({ item }: { item: ItemRow }) {
   )
 }
 
-export default function ListScreen({ ownerName, view, viewerId }: Props) {
+export default function ListScreen({ ownerName, view, viewerId, parents, canNote }: Props) {
   const router = useRouter()
   const [openId, setOpenId] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -137,8 +147,10 @@ export default function ListScreen({ ownerName, view, viewerId }: Props) {
                         : `More than one is fine${s && s.boughtCount ? ` · ${s.boughtCount} bought so far` : ''}`}
                     </span>
                   )}
+                  {item.parentNote && <span className="mt-1"><ParentNote note={item.parentNote} compact /></span>}
                 </span>
-                {!s?.mine && !needsReview && (
+                {/* Already bought by the parents: no quick "I got this" here. The sheet says to ask them first. */}
+                {!s?.mine && !needsReview && !item.parentNote && (
                   <span
                     className={`shrink-0 rounded-full px-3.5 py-2.5 text-[14px] font-semibold ${
                       item.is_top_pick ? 'bg-plum text-paper' : 'border border-plum text-plum'
@@ -228,7 +240,11 @@ export default function ListScreen({ ownerName, view, viewerId }: Props) {
                   <button type="button" onClick={() => setOpenId(item.id)} className="flex min-w-0 flex-1 flex-col text-left">
                     <span className={`text-[16px] ${mine ? 'font-medium text-ink' : 'text-muted'}`}>{item.name}</span>
                     <span className={`text-[13px] ${mine ? 'font-semibold text-got' : 'text-muted'}`}>
-                      {mine && viaGroup ? "You're going in together" : mine ? 'You got this' : together ? 'Going in together' : 'Taken'}
+                      {mine && viaGroup
+                        ? "You're going in together"
+                        : mine
+                          ? item.parentNote ? `You notified ${parents}` : 'You got this'
+                          : together ? 'Going in together' : 'Taken'}
                     </span>
                   </button>
                   {mine && !viaGroup && (
@@ -255,6 +271,8 @@ export default function ListScreen({ ownerName, view, viewerId }: Props) {
           isOwn={isOwn}
           needsReview={needsReview}
           viewerId={viewerId}
+          parents={parents}
+          canNote={canNote}
           onClose={() => setOpenId(null)}
         />
       )}

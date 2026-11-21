@@ -75,15 +75,15 @@ async function readCapped(res: Response, max: number): Promise<Uint8Array> {
   return out
 }
 
-/** The photo and name a store page advertises. Never throws; empty when it can't tell. */
+/** The photo, name and price a store page advertises. Never throws; empty when it can't tell. */
 export async function previewOf(link: string): Promise<Preview> {
   try {
     const res = await safeFetch(link)
-    if (!res.ok || !(res.headers.get('content-type') ?? '').includes('html')) return { image: null, title: null }
+    if (!res.ok || !(res.headers.get('content-type') ?? '').includes('html')) return { image: null, title: null, price: null }
     const html = new TextDecoder().decode(await readCapped(res, MAX_PAGE_BYTES))
     return parsePreview(html, res.url || link)
   } catch {
-    return { image: null, title: null }
+    return { image: null, title: null, price: null }
   }
 }
 
@@ -108,10 +108,10 @@ export async function copyPhoto(imageUrl: string): Promise<string | null> {
   }
 }
 
-/** The photo for a link: find it on the page, then copy it. Null if none. */
-export async function photoFromLink(link: string): Promise<string | null> {
-  const { image } = await previewOf(link)
-  return image ? copyPhoto(image) : null
+/** What a link gives us: its photo (copied into our storage) and its price. */
+export async function fromLink(link: string): Promise<{ photo: string | null; price: number | null }> {
+  const { image, price } = await previewOf(link)
+  return { photo: image ? await copyPhoto(image) : null, price }
 }
 
 /** A photo the owner chose from their phone (already shrunk in the browser). */

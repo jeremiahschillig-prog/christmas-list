@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { claimItem, unclaimItem } from '@/app/actions/items'
+import { setParentNote } from '@/app/actions/parentnotes'
 import GroupGift from '@/components/GroupGift'
+import ParentNote from '@/components/ParentNote'
 import { formatPrice, linkDomain } from '@/lib/format'
 import type { BuyerItem, ItemRow } from '@/lib/listview'
 
@@ -17,14 +19,31 @@ type Props = {
   isOwn: boolean
   needsReview: boolean
   viewerId: string
+  /** "Jeremy & Jessica": who a parents' note sends buyers to. */
+  parents?: string
+  /** Jeremy or Jessica on a kid's list: may add or change a parents' note. */
+  canNote?: boolean
   onClose: () => void
 }
 
-export default function ItemSheet({ item, ownerName, isOwn, needsReview, viewerId, onClose }: Props) {
+export default function ItemSheet({ item, ownerName, isOwn, needsReview, viewerId, parents = 'the parents', canNote = false, onClose }: Props) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const status = 'status' in item ? item.status : null
+  const parentNote = 'parentNote' in item ? item.parentNote : null
+  // null = not editing; otherwise the draft text.
+  const [noteDraft, setNoteDraft] = useState<string | null>(null)
+
+  async function saveNote(text: string) {
+    setBusy(true)
+    setMessage(null)
+    const result = await setParentNote(item.id, text)
+    setBusy(false)
+    if (!result.ok) return setMessage(result.error)
+    setNoteDraft(null)
+    router.refresh()
+  }
   const domain = linkDomain(item.link)
   const price = formatPrice(item.price)
 
@@ -101,6 +120,63 @@ export default function ItemSheet({ item, ownerName, isOwn, needsReview, viewerI
           {item.multi_ok && isOwn && <span className="text-[14px] text-muted">More than one is fine</span>}
         </div>
 
+        {!isOwn && parentNote && noteDraft === null && <ParentNote note={parentNote} />}
+
+        {!isOwn && canNote && (
+          noteDraft === null ? (
+            <div className="-mt-2 flex gap-5">
+              <button
+                type="button"
+                onClick={() => setNoteDraft(parentNote ?? `${parents} already bought this. Reach out to them if you'd like to give it.`)}
+                className="min-h-11 text-[14px] font-semibold text-plum underline underline-offset-4"
+              >
+                {parentNote ? "Edit parents' note" : "Add a parents' note"}
+              </button>
+              {parentNote && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => saveNote('')}
+                  className="min-h-11 text-[14px] font-semibold text-plum underline underline-offset-4 disabled:opacity-50"
+                >
+                  Remove note
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5 rounded-2xl border border-line bg-white p-4">
+              <label htmlFor="parent-note" className="text-[11px] uppercase tracking-[0.14em] text-muted">
+                Parents&apos; note · shown in red to everyone but {ownerName}
+              </label>
+              <textarea
+                id="parent-note"
+                rows={3}
+                maxLength={300}
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+                className="rounded-xl border border-line bg-paper px-3.5 py-3 text-[16px] leading-snug text-ink outline-none focus:border-plum"
+              />
+              <div className="flex gap-2.5">
+                <button
+                  type="button"
+                  disabled={busy || !noteDraft.trim()}
+                  onClick={() => saveNote(noteDraft)}
+                  className="h-11 flex-1 rounded-full bg-plum text-[15px] font-semibold text-paper disabled:opacity-50"
+                >
+                  {busy ? 'Saving…' : 'Save note'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNoteDraft(null)}
+                  className="h-11 flex-1 rounded-full border border-plum text-[15px] font-semibold text-plum"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )
+        )}
+
         {facts.length > 0 && (
           <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${facts.length}, minmax(0, 1fr))` }}>
             {facts.map((f) => (
@@ -152,9 +228,10 @@ export default function ItemSheet({ item, ownerName, isOwn, needsReview, viewerI
                     <rect x="3" y="8" width="18" height="13" rx="2" />
                     <path d="M12 8v13M3 12h18M12 8c-2-4-6-4-6-1.5S9 8 12 8zM12 8c2-4 6-4 6-1.5S15 8 12 8z" />
                   </svg>
-                  {busy ? 'Saving…' : 'I got this'}
+                  {busy ? 'Saving…' : parentNote ? `I notified ${parents}` : 'I got this'}
                 </button>
                 <span className="text-center text-[13px] text-muted">
+                  {parentNote ? `Tap once you've reached out to ${parents}. ` : ''}
                   Others will see &ldquo;Taken.&rdquo; {ownerName} won&apos;t see anything.
                 </span>
               </>
@@ -166,7 +243,7 @@ export default function ItemSheet({ item, ownerName, isOwn, needsReview, viewerI
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M4 12l5 5L20 6" />
                   </svg>
-                  You got this
+                  {parentNote ? `You notified ${parents}` : 'You got this'}
                 </p>
                 <button
                   type="button"
@@ -174,7 +251,7 @@ export default function ItemSheet({ item, ownerName, isOwn, needsReview, viewerI
                   onClick={() => run(unclaimItem)}
                   className="h-[54px] rounded-full border border-plum text-[16px] font-semibold text-plum disabled:opacity-60"
                 >
-                  {busy ? 'Saving…' : 'Undo, I didn’t get it'}
+                  {busy ? 'Saving…' : parentNote ? 'Undo' : 'Undo, I didn’t get it'}
                 </button>
               </>
             )}
@@ -182,7 +259,7 @@ export default function ItemSheet({ item, ownerName, isOwn, needsReview, viewerI
             {status?.kind === 'taken' && (
               <p className="text-center text-[15px] text-muted">Someone already got this one.</p>
             )}
-            {status && !item.multi_ok && (
+            {status && !item.multi_ok && !(parentNote && status.kind === 'open') && (
               <GroupGift itemId={item.id} viewerId={viewerId} status={status} needsReview={needsReview} />
             )}
             {needsReview && status?.kind === 'open' && !status.mine && (

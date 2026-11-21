@@ -82,13 +82,18 @@ export default function ItemEditor({ ownerId, ownerName, item, onClose, onSaved 
     }
   }, [onClose])
 
-  // Paste a link with no name yet, and the store's own product name fills in.
+  // Paste a link, and the store's own product name and price fill in, unless
+  // they've been typed already.
   async function lookUpName() {
-    if (form.name.trim() || !form.link.trim()) return
+    if (!form.link.trim() || (form.name.trim() && (form.price.trim() || form.is_cash))) return
     setBusy('lookup')
-    const { title } = await suggestFromLink(form.link)
+    const { title, price } = await suggestFromLink(form.link)
     setBusy(null)
-    if (title) setForm((f) => (f.name.trim() ? f : { ...f, name: title }))
+    setForm((f) => ({
+      ...f,
+      name: f.name.trim() || !title ? f.name : title,
+      price: f.price.trim() || f.is_cash || price === null ? f.price : String(price),
+    }))
   }
 
   async function save() {

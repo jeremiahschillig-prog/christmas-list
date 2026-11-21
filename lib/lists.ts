@@ -53,6 +53,10 @@ function deps(year: number): ListDeps {
     },
     claims: claimsFor,
     splits: splitsFor,
+    parentNotes: async (itemIds) => {
+      const { data } = await db().from('parent_notes').select('item_id, note').in('item_id', itemIds)
+      return data ?? []
+    },
     reviewed: async (ownerId) => {
       const { data } = await db().from('list_reviews').select('owner_id').eq('owner_id', ownerId).eq('year', year).maybeSingle()
       return Boolean(data)
@@ -104,7 +108,13 @@ export async function homeFor(viewerId: string): Promise<{ year: number; cards: 
   return { year, cards, myGiftCount }
 }
 
-export async function ownerName(ownerId: string): Promise<string | null> {
-  const { data } = await db().from('people').select('name').eq('id', ownerId).eq('is_owner', true).maybeSingle()
-  return data?.name ?? null
+/**
+ * Who a parents' note points buyers to: the admins other than the list's
+ * owner, e.g. "Jeremy & Jessica".
+ */
+export async function parentNames(ownerId: string): Promise<string> {
+  const { data } = await db().from('people').select('id, name').eq('is_admin', true).order('sort_order')
+  const names = (data ?? []).filter((p) => p.id !== ownerId).map((p) => p.name)
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} & ${names.at(-1)}` : names[0] ?? 'the parents'
 }
+

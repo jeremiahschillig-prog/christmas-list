@@ -7,7 +7,7 @@ import { meaningfulChanges, normalizeLink, validateItem, type ItemInput } from '
 import { currentYear } from '@/lib/lists'
 import { adminIds, assertCanEdit, buyersOf } from '@/lib/mylist'
 import { changeRecipients } from '@/lib/permissions'
-import { deleteStoredPhoto, photoFromLink, previewOf, storeUploadedPhoto } from '@/lib/photos'
+import { deleteStoredPhoto, fromLink, previewOf, storeUploadedPhoto } from '@/lib/photos'
 import { currentPerson } from '@/lib/session'
 
 export type SaveResult = { ok: true; id: string; photoFound: boolean | null } | { ok: false; error: string }
@@ -48,12 +48,13 @@ function done() {
   revalidatePath('/', 'layout')
 }
 
-/** Suggests a name for a pasted link (the photo is fetched when the item is saved). */
-export async function suggestFromLink(raw: string): Promise<{ title: string | null }> {
+/** Suggests a name and price for a pasted link (the photo is fetched when the item is saved). */
+export async function suggestFromLink(raw: string): Promise<{ title: string | null; price: number | null }> {
   await me()
   const link = normalizeLink(raw)
-  if (!link) return { title: null }
-  return { title: (await previewOf(link)).title }
+  if (!link) return { title: null, price: null }
+  const { title, price } = await previewOf(link)
+  return { title, price }
 }
 
 export async function addItem(ownerId: string, input: ItemInput): Promise<SaveResult> {
@@ -71,11 +72,14 @@ export async function addItem(ownerId: string, input: ItemInput): Promise<SaveRe
     .from('items').select('sort_order').eq('owner_id', ownerId).eq('year', year)
     .order('sort_order', { ascending: false }).limit(1).maybeSingle()
 
-  const photo = v.fields.link ? await photoFromLink(v.fields.link) : null
+  const found = v.fields.link ? await fromLink(v.fields.link) : null
+  const photo = found?.photo ?? null
   const { data, error } = await db()
     .from('items')
     .insert({
       ...v.fields,
+      // No price typed in: use the store's, if its page says.
+      price: v.fields.price ?? (v.fields.is_cash ? null : found?.price ?? null),
       owner_id: ownerId,
       year,
       sort_order: (last?.sort_order ?? -1) + 1,
@@ -105,23 +109,27 @@ export async function updateItem(itemId: string, input: ItemInput): Promise<Save
 
   // A photo pulled from the old link is replaced when the link changes. One
   // the owner chose themselves is kept.
+  // A new link with no price typed in takes the store's price too.
   let photo: { photo_url: string | null; photo_source: 'link' | 'upload' | null } | null = null
   let photoFound: boolean | null = null
   const linkChanged = (item.link ?? null) !== v.fields.link
-  if (linkChanged && item.photo_source !== 'upload') {
-    const found = v.fields.link ? await photoFromLink(v.fields.link) : null
-    photo = { photo_url: found, photo_source: found ? 'link' : null }
-    photoFound = v.fields.link ? Boolean(found) : null
+  const wantPrice = linkChanged && v.fields.price === null && !v.fields.is_cash
+  const wantPhoto = linkChanged && item.photo_source !== 'upload'
+  const found = v.fields.link && (wantPhoto || wantPrice) ? await fromLink(v.fields.link) : null
+  if (wantPhoto) {
+    photo = { photo_url: found?.photo ?? null, photo_source: found?.photo ? 'link' : null }
+    photoFound = v.fields.link ? Boolean(found?.photo) : null
   }
+  const fields = wantPrice && found?.price ? { ...v.fields, price: found.price } : v.fields
 
   const { error } = await db()
     .from('items')
-    .update({ ...v.fields, ...(photo ?? {}), updated_by: person.id, updated_at: new Date().toISOString() })
+    .update({ ...fields, ...(photo ?? {}), updated_by: person.id, updated_at: new Date().toISOString() })
     .eq('id', itemId)
   if (error) return { ok: false, error: 'Something went wrong saving that. Please try again.' }
   if (photo) await deleteStoredPhoto(item.photo_url)
 
-  const changes = meaningfulChanges(item, v.fields)
+  const changes = meaningfulChanges(item, fields)
   if (changes.length) await notify('item_changed', item, person.id, { changes })
 
   done()

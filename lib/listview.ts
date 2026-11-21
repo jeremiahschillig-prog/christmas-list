@@ -2,8 +2,8 @@ import { summarize, type SplitInfo, type SplitMember } from './splits'
 
 // What one person is allowed to see of one list.
 //
-// THE SURPRISE RULE LIVES HERE. When the viewer is the list's owner, the claims
-// and splits are never even fetched: `loadList` returns before asking for them,
+// THE SURPRISE RULE LIVES HERE. When the viewer is the list's owner, the claims,
+// splits and parents' notes are never even fetched: `loadList` returns before asking for them,
 // and the items it returns carry no status field at all. There is nothing for
 // the page, the network response, or a curious kid's dev tools to leak.
 //
@@ -47,7 +47,10 @@ export type Status =
   | { kind: 'taken' }
   | { kind: 'together'; member: boolean; split: SplitInfo }
 
-export type BuyerItem = ItemRow & { status: Status }
+export type ParentNoteRow = { item_id: string; note: string }
+
+/** `parentNote`: Jeremy or Jessica's red note ("We already bought this…"). Never sent to the owner. */
+export type BuyerItem = ItemRow & { status: Status; parentNote: string | null }
 
 export type ListView =
   | { kind: 'own'; items: ItemRow[] }
@@ -57,6 +60,7 @@ export type ListDeps = {
   items: (ownerId: string) => Promise<ItemRow[]>
   claims: (itemIds: string[]) => Promise<ClaimRow[]>
   splits: (itemIds: string[]) => Promise<SplitRow[]>
+  parentNotes: (itemIds: string[]) => Promise<ParentNoteRow[]>
   /** Has this owner marked their list reviewed for the current season? */
   reviewed: (ownerId: string) => Promise<boolean>
 }
@@ -98,11 +102,15 @@ export async function loadList(viewerId: string, ownerId: string, deps: ListDeps
   if (viewerId === ownerId) return { kind: 'own', items }
 
   const ids = items.map((i) => i.id)
-  const [claims, splits] = ids.length
-    ? await Promise.all([deps.claims(ids), deps.splits(ids)])
-    : [[], []]
+  const [claims, splits, notes] = ids.length
+    ? await Promise.all([deps.claims(ids), deps.splits(ids), deps.parentNotes(ids)])
+    : [[], [], []]
 
-  const withStatus = items.map((item) => ({ ...item, status: statusOf(item, viewerId, claims, splits) }))
+  const withStatus = items.map((item) => ({
+    ...item,
+    status: statusOf(item, viewerId, claims, splits),
+    parentNote: notes.find((n) => n.item_id === item.id)?.note ?? null,
+  }))
   // Open ones first (top picks leading), then everything already spoken for.
   const open = withStatus.filter((i) => i.status.kind === 'open')
   const rest = withStatus.filter((i) => i.status.kind !== 'open')

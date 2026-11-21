@@ -104,16 +104,47 @@ test('changing only capitals or spaces is not a change', () => {
 test('JSON-LD product data wins', () => {
   const html = `<head><meta property="og:image" content="https://x.com/og.jpg">
     <script type="application/ld+json">{"@type":"Product","name":"Align Short 6\\"","image":["https://x.com/p.jpg"]}</script></head>`
-  assert.deepEqual(parsePreview(html, 'https://x.com/p'), { image: 'https://x.com/p.jpg', title: 'Align Short 6"' })
+  assert.deepEqual(parsePreview(html, 'https://x.com/p'), { image: 'https://x.com/p.jpg', title: 'Align Short 6"', price: null })
 })
 
 test('falls back to og:image (either attribute order) and the title', () => {
   const html = `<title>Hoodie &amp; More</title><meta content="/img/h.jpg" property="og:image">`
-  assert.deepEqual(parsePreview(html, 'https://shop.example.com/h'), { image: 'https://shop.example.com/img/h.jpg', title: 'Hoodie & More' })
+  assert.deepEqual(parsePreview(html, 'https://shop.example.com/h'), { image: 'https://shop.example.com/img/h.jpg', title: 'Hoodie & More', price: null })
 })
 
 test('a page with nothing gives nothing', () => {
-  assert.deepEqual(parsePreview('<html></html>', 'https://x.com'), { image: null, title: null })
+  assert.deepEqual(parsePreview('<html></html>', 'https://x.com'), { image: null, title: null, price: null })
+})
+
+test('the price comes from the product data, the variant in the link winning', () => {
+  const ld = (offers: unknown) =>
+    `<script type="application/ld+json">${JSON.stringify({ '@type': 'Product', name: 'Hoodie', offers })}</script>`
+  assert.equal(parsePreview(ld({ '@type': 'Offer', price: '68.00', priceCurrency: 'USD' }), 'https://x.com/h').price, 68)
+  const variants = [
+    { price: 109, url: 'https://x.com/h?variant=1' },
+    { price: 89.5, url: 'https://x.com/h?variant=2' },
+  ]
+  assert.equal(parsePreview(ld(variants), 'https://x.com/h?variant=2').price, 89.5)
+  assert.equal(parsePreview(ld(variants), 'https://x.com/h').price, 109)
+  assert.equal(parsePreview(ld({ '@type': 'AggregateOffer', lowPrice: '19.99' }), 'https://x.com/h').price, 19.99)
+  assert.equal(parsePreview(ld({ price: '50', priceCurrency: 'EUR' }), 'https://x.com/h').price, null)
+})
+
+test('a ProductGroup keeps its price on each variant', () => {
+  const html = `<script type="application/ld+json">${JSON.stringify({
+    '@type': 'ProductGroup', name: 'Tee', hasVariant: [{ '@type': 'Product', offers: { price: '24.00' } }],
+  })}</script>`
+  assert.equal(parsePreview(html, 'https://x.com/t').price, 24)
+  // Raw line breaks inside the text, as PacSun sends them.
+  const loose = `<script type="application/ld+json">{"@type":"Product","name":"Tee","description":"Soft\r\n\tcotton","offers":{"price":39.95}}</script>`
+  assert.equal(parsePreview(loose, 'https://x.com/t').price, 39.95)
+})
+
+test('falls back to the price meta tags, in dollars only', () => {
+  assert.equal(parsePreview('<meta property="product:price:amount" content="1,299.00">', 'https://x.com').price, 1299)
+  assert.equal(parsePreview('<meta property="og:price:amount" content="16.80"><meta property="og:price:currency" content="USD">', 'https://x.com').price, 16.8)
+  assert.equal(parsePreview('<meta property="og:price:amount" content="16.80"><meta property="og:price:currency" content="GBP">', 'https://x.com').price, null)
+  assert.equal(parsePreview('<meta property="og:price:amount" content="0">', 'https://x.com').price, null)
 })
 
 test('the server refuses to fetch private addresses', () => {
