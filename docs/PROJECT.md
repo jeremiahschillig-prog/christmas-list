@@ -138,6 +138,10 @@ name + PIN. PINs are hashed in the database, and every read and write goes throu
 server routes that apply the surprise rule. The browser never talks to the database
 directly.
 
+**Region:** the Supabase database is in Oregon (us-west-2), so `vercel.json` runs the
+app's code in Portland (`pdx1`). Vercel's default is Washington DC (`iad1`), which put
+a cross-country trip on each of the 10–15 database calls behind a tap.
+
 ## Working agreement
 
 - One step at a time, with the next step restated at each stage.
