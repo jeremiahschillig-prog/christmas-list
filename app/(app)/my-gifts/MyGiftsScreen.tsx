@@ -118,7 +118,7 @@ export default function MyGiftsScreen({ groups, notes, count, viewerId }: Props)
                 <div className="flex items-center gap-3.5">
                   {g.photoUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={g.photoUrl} alt="" className="size-14 shrink-0 rounded-xl border border-line object-cover" />
+                    <img src={g.photoUrl} alt="" loading="lazy" decoding="async" className="size-14 shrink-0 rounded-xl border border-line object-cover" />
                   )}
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className={`font-serif text-[19px] text-plum ${g.removedBy ? 'line-through decoration-1' : ''}`}>{g.name}</span>

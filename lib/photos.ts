@@ -3,6 +3,7 @@ import { lookup } from 'node:dns/promises'
 import { randomUUID } from 'node:crypto'
 import { db } from './db'
 import { isPrivateHost, parsePreview, type Preview } from './linkpreview'
+import { shrinkForStorage } from './photosize'
 
 // Fetching store pages and photos, and keeping photos in our own storage.
 //
@@ -88,10 +89,13 @@ export async function previewOf(link: string): Promise<Preview> {
 }
 
 async function upload(bytes: Uint8Array, contentType: string): Promise<string> {
-  const ext = IMAGE_TYPES[contentType]
-  if (!ext) throw new Error('not a supported image')
-  const path = `${randomUUID()}.${ext}`
-  const { error } = await db().storage.from(BUCKET).upload(path, bytes, { contentType, upsert: false })
+  if (!IMAGE_TYPES[contentType]) throw new Error('not a supported image')
+  const small = await shrinkForStorage(bytes)
+  const path = `${randomUUID()}.jpg`
+  // Each file has a new name and is never overwritten, so phones may keep it a year.
+  const { error } = await db()
+    .storage.from(BUCKET)
+    .upload(path, small, { contentType: 'image/jpeg', upsert: false, cacheControl: '31536000' })
   if (error) throw new Error(error.message)
   return db().storage.from(BUCKET).getPublicUrl(path).data.publicUrl
 }

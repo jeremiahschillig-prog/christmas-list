@@ -501,3 +501,18 @@ three settings from `.env.local`. Checked at 375 px on https://christmas-list-al
   add/save, red note on card and sheet, "I notified…" claim and undo, and a pasted
   Tweezerman link filling "Classic Lash Curler" and $19. The live Six Flags note is
   set as Jeremy.
+
+### Slow taps (Nov 21)
+
+Jeremy saw taps, especially Admin, take 20–30 seconds with no sign of life. Timing
+the Admin screen's database work found it was about half a second, so the
+database wasn't the cause. The photos were: stored store photos were full size, up
+to 4.7 MB each and 42.7 MB in all, shown as thumbnails. A phone opening a list
+downloaded tens of megabytes, and the next tap waited behind them.
+
+- Every photo is now stored as an 800 px JPEG (`lib/photosize.ts`, sharp), about
+  20–60 KB, with a one-year cache since files are never overwritten.
+- `npm run db:shrink-photos [-- --save]` shrinks photos saved before this (dry run without `--save`).
+- `app/(app)/loading.tsx` shows "Loading…" the moment a tab or list is tapped,
+  and a tapped tab pulses (`useLinkStatus`) until its screen arrives.
+- List thumbnails load lazily, so photos below the fold wait until scrolled to.

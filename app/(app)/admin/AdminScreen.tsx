@@ -191,7 +191,7 @@ export default function AdminScreen({ lists, notes, people, meId, season, viewin
                     <li key={item.id} className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? 'border-t border-line' : ''}`}>
                       {item.photoUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.photoUrl} alt="" className="size-12 shrink-0 rounded-lg border border-line object-cover" />
+                        <img src={item.photoUrl} alt="" loading="lazy" decoding="async" className="size-12 shrink-0 rounded-lg border border-line object-cover" />
                       )}
                       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <span className="text-[16px] font-medium text-ink">

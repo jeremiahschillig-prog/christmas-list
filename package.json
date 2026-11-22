@@ -13,14 +13,16 @@
     "db:sample": "node --env-file=.env.local --import ./tests/ts-hook.mjs scripts/sample-items.ts",
     "db:storage": "node --env-file=.env.local --import ./tests/ts-hook.mjs scripts/setup-storage.ts",
     "db:import": "node --env-file=.env.local --import ./tests/ts-hook.mjs scripts/import-list.ts",
-    "db:prices": "node --env-file=.env.local --import ./tests/ts-hook.mjs scripts/fill-prices.ts"
+    "db:prices": "node --env-file=.env.local --import ./tests/ts-hook.mjs scripts/fill-prices.ts",
+    "db:shrink-photos": "node --env-file=.env.local --import ./tests/ts-hook.mjs scripts/shrink-photos.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
     "next": "16.3.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "sharp": "0.35.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

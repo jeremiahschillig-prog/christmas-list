@@ -125,7 +125,7 @@ export default function MyListScreen({ lists, ownerId, ownerName, isMe, items, r
               >
                 {item.photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.photo_url} alt="" className="size-14 shrink-0 rounded-xl border border-line object-cover" />
+                  <img src={item.photo_url} alt="" loading="lazy" decoding="async" className="size-14 shrink-0 rounded-xl border border-line object-cover" />
                 ) : (
                   <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-soft text-rose" aria-hidden="true">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">

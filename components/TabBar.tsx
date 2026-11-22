@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import Link, { useLinkStatus } from 'next/link'
 import { usePathname } from 'next/navigation'
 
 // The floating pill of tabs from the mockup. Up to four tabs (Lists, My Gifts,
@@ -35,6 +35,15 @@ const ADMIN_ICON = (
   </svg>
 )
 
+// Inside each tab: while a tapped tab's screen is on its way, its icon pulses,
+// so the tap visibly registered even on a slow connection.
+function Pending() {
+  const { pending } = useLinkStatus()
+  return pending ? (
+    <span aria-hidden="true" className="absolute inset-0 animate-pulse rounded-full bg-soft" />
+  ) : null
+}
+
 type Props = { isOwner: boolean; isAdmin: boolean; giftBadge: number; adminBadge: number }
 
 export default function TabBar({ isOwner, isAdmin, giftBadge, adminBadge }: Props) {
@@ -61,8 +70,9 @@ export default function TabBar({ isOwner, isAdmin, giftBadge, adminBadge }: Prop
             t.active ? 'bg-soft font-semibold text-plum' : 'font-medium text-muted'
           }`}
         >
-          {t.icon}
-          {t.label}
+          <Pending />
+          <span className="relative">{t.icon}</span>
+          <span className="relative">{t.label}</span>
           {t.badge > 0 && (
             <span className="absolute top-1 left-[calc(50%+6px)] flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-text px-1 text-[11px] font-bold text-white">
               {t.badge}

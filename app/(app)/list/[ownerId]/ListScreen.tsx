@@ -35,7 +35,7 @@ function Thumb({ item }: { item: ItemRow }) {
     // Product photos come from any store's site, so a plain <img> rather than
     // next/image, which would need every store's domain listed in config.
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={item.photo_url} alt="" className="size-16 shrink-0 rounded-xl border border-line object-cover" />
+    <img src={item.photo_url} alt="" loading="lazy" decoding="async" className="size-16 shrink-0 rounded-xl border border-line object-cover" />
   )
 }
 
